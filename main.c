@@ -28,13 +28,15 @@ int main() {
             SDL_RenderDrawPoint(prenderer, x, y);
         }
     }
+
     SDL_RenderPresent(prenderer);
-    // SDL_UpdateWindowSurface(pwindow);
 
     while (running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
+            if (event.type == SDL_QUIT || event.type == SDL_KEYDOWN) {
+                SDL_DestroyWindow(pwindow);
+                SDL_DestroyRenderer(prenderer);
                 running = false;
             }
         }
