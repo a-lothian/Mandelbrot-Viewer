@@ -1,0 +1,1 @@
+int calculateMandelbrot(float x0, float y0, int iterations);
