@@ -38,7 +38,7 @@ jobs:
         mkdir Mandelbrot-Windows-x64
         cp build/Release/Mandelbrot.exe Mandelbrot-Windows-x64/
         cp build/Release/SDL2.dll Mandelbrot-Windows-x64/
-        zip -r Mandelbrot-Windows.zip Mandelbrot-Windows-x64
+        7z a Mandelbrot-Windows.zip Mandelbrot-Windows-x64/
         
     - name: Upload Windows Artifact
       if: matrix.os == 'windows-latest'
