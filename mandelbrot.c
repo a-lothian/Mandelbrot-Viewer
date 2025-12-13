@@ -21,6 +21,7 @@ float calculateY(float inX, float inY, float initialY) {
 }
 
 // calculate if the point(x(n+1),y(n+1)) will escape given enough iterations
+// returns number of iterations required to escape bounding length of 4
 int calculateMandelbrot(float x0, float y0, int iterations) {
     float x_n = x0;
     float y_n = y0;
