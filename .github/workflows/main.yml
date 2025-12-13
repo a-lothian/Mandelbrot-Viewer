@@ -1,0 +1,62 @@
+name: Build Mandelbrot
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    # Run on Windows, Linux, AND macOS
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # ensure SDL is setup on all platforms
+    - name: Setup SDL
+      uses: libsdl-org/setup-sdl@v1
+      with:
+        version: 2-latest
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: cmake --build build --config Release
+      
+    # windows requires both the dll and exe. I zip them together here.
+    - name: Create Windows Release Package
+      if: matrix.os == 'windows-latest'
+      shell: bash
+      run: |
+        mkdir Mandelbrot-Windows-x64
+        cp build/Release/Mandelbrot.exe Mandelbrot-Windows-x64/
+        cp build/Release/SDL2.dll Mandelbrot-Windows-x64/
+        zip -r Mandelbrot-Windows.zip Mandelbrot-Windows-x64
+        
+    - name: Upload Windows Artifact
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: Mandelbrot-Windows
+        path: Mandelbrot-Windows.zip
+
+    - name: Upload Linux Artifact
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: Mandelbrot-Linux
+        path: build/Mandelbrot
+        
+    - name: Upload macOS Artifact
+      if: matrix.os == 'macos-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: Mandelbrot-macOS
+        path: build/Mandelbrot
