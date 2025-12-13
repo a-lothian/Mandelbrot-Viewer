@@ -8,9 +8,11 @@ This project was primarily a **Github Actions** learning excersise, including:
 - Automated releases
 - CI troubleshooting across toolchains
 
-The program itself isn't particulary special.
+The program itself isn't particularly special.
 
-![Image showcase](assets/demo.png)
+<p align="center">
+<img src="assets/demo.png" alt="Image Showcase" height="400" />
+</p>
 
 ## Features
 
