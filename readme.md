@@ -10,7 +10,7 @@ This project was primarily a **Github Actions** learning excersise, including:
 
 The program itself isn't particulary special.
 
-![Image showcase](demo.png)
+![Image showcase](assets/demo.png)
 
 ## Features
 
