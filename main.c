@@ -4,12 +4,11 @@
 #include "mandelbrot.h"
 #include "inputHandler.h"
 
+#define SDL_MAIN_HANDLED  // updates entry point on windows
 #include <SDL2/SDL.h>
 
 #define SCRN_HEIGHT 600
 #define SCRN_WIDTH 800
-
-#define SDL_MAIN_HANDLED  // updates entry point on windows
 
 int half_SCRN_HEIGHT = SCRN_HEIGHT / 2;
 int half_SCRN_WIDTH = SCRN_WIDTH / 2;
