@@ -10,8 +10,8 @@
 #define SCRN_HEIGHT 600
 #define SCRN_WIDTH 800
 
-int half_SCRN_HEIGHT = SCRN_HEIGHT / 2;
-int half_SCRN_WIDTH = SCRN_WIDTH / 2;
+const int halfHeight = SCRN_HEIGHT / 2;
+const int halfWidth = SCRN_WIDTH / 2;
 
 bool running = true;
 
@@ -20,8 +20,8 @@ void drawMandelbrot(SDL_Renderer* _prenderer, float _offsetX, float _offsetY, fl
     // draw onto screen
     for (int y = 0; y < SCRN_HEIGHT; y++) {
         for (int x = 0; x < SCRN_WIDTH; x++) {
-            float real_coord = ((x - half_SCRN_WIDTH) * _zoom) + _offsetX;
-            float imag_coord = ((y - half_SCRN_HEIGHT) * _zoom) + _offsetY;
+            float real_coord = ((x - halfWidth) * _zoom) + _offsetX;
+            float imag_coord = ((y - halfHeight) * _zoom) + _offsetY;
 
             iterations = calculateMandelbrot(real_coord, imag_coord, 32);
             iterations *= 16;
@@ -45,8 +45,8 @@ int main() {
         return 1;
     }
 
-    struct viewport* vpstate = init_viewport();
-    drawMandelbrot(prenderer, vpstate->current_offset_x, vpstate->current_offset_y, 0.01);
+    struct viewport* vpstate = init_viewport(SCRN_WIDTH, SCRN_HEIGHT);
+    drawMandelbrot(prenderer, vpstate->current_offset_x, vpstate->current_offset_y, vpstate->zoom);
 
     while (running) {
         SDL_Event event;
@@ -58,7 +58,7 @@ int main() {
                 return 0;
             }
             if (handle_mouse_events(&event, vpstate)) {
-                drawMandelbrot(prenderer, vpstate->current_offset_x, vpstate->current_offset_y, 0.01);
+                drawMandelbrot(prenderer, vpstate->current_offset_x, vpstate->current_offset_y, vpstate->zoom);
             }
         }
     }
