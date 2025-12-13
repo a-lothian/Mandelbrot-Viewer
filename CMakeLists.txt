@@ -14,7 +14,11 @@ set(SOURCES
 
 add_executable(Mandelbrot ${SOURCES})
 
-target_link_libraries(Mandelbrot PRIVATE m SDL2::SDL2main SDL2::SDL2)
+target_link_libraries(Mandelbrot PRIVATE SDL2::SDL2main SDL2::SDL2)
+
+if(UNIX AND NOT APPLE)
+  target_link_libraries(Mandelbrot PRIVATE m)
+endif()
 
 # add include directory explicitly so <SDL2/SDL.h> works everywhere
 target_include_directories(Mandelbrot PRIVATE ${SDL2_INCLUDE_DIRS})
