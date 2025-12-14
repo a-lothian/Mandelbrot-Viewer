@@ -15,21 +15,55 @@ const int halfWidth = SCRN_WIDTH / 2;
 
 bool running = true;
 
-void drawMandelbrot(SDL_Renderer* _prenderer, float _offsetX, float _offsetY, float _zoom) {
+int calculateMandelbrotPix(float x, float y, struct viewport* vp) {
     int iterations;
+    float real_coord = ((x - halfWidth) * vp->zoom) + vp->current_offset_x;
+    float imag_coord = ((y - halfHeight) * vp->zoom) + vp->current_offset_y;
+
+    iterations = calculateMandelbrot(real_coord, imag_coord, vp->iterations);
+
+    return iterations;
+}
+
+void drawMandelbrot(SDL_Renderer* _prenderer, struct viewport* vp) {
+    int iterations;
+    void* pixels;
+    int pitch;
+
+    SDL_Texture* screen = SDL_CreateTexture(_prenderer,
+                                            SDL_PIXELFORMAT_ARGB8888,
+                                            SDL_TEXTUREACCESS_STREAMING,
+                                            SCRN_WIDTH,
+                                            SCRN_HEIGHT);
+
+    SDL_LockTexture(screen, NULL, &pixels, &pitch);
+    Uint32* target_pixels = (Uint32*)pixels;
+
     // draw onto screen
     for (int y = 0; y < SCRN_HEIGHT; y++) {
         for (int x = 0; x < SCRN_WIDTH; x++) {
-            float real_coord = ((x - halfWidth) * _zoom) + _offsetX;
-            float imag_coord = ((y - halfHeight) * _zoom) + _offsetY;
+            iterations = calculateMandelbrotPix(x, y, vp);
 
-            iterations = calculateMandelbrot(real_coord, imag_coord, 32);
-            iterations *= 16;
-            iterations -= 1;  // scale to 255
-            SDL_SetRenderDrawColor(_prenderer, iterations, iterations, iterations, 255);
-            SDL_RenderDrawPoint(_prenderer, x, y);
+            Uint8 brightness;
+
+            if (iterations >= vp->iterations) {
+                brightness = 0;
+            } else {
+                // scale iterations to fit within 0-255 range relative to the max
+                brightness = (Uint8)((iterations * 255) / vp->iterations);
+            }
+
+            // coloring (0xFFRRGGBB format for ARGB8888)
+            Uint32 color = (0xFF << 24) | (brightness << 16) | (brightness << 8) | brightness;
+
+            // write to buffer
+            target_pixels[y * SCRN_WIDTH + x] = color;
         }
     }
+    SDL_UnlockTexture(screen);
+
+    // transfer buffer in RAM to VRAM, then draw VRAM
+    SDL_RenderCopy(_prenderer, screen, NULL, NULL);
     SDL_RenderPresent(_prenderer);
 }
 
@@ -45,8 +79,8 @@ int main() {
         return 1;
     }
 
-    struct viewport* vpstate = init_viewport(SCRN_WIDTH, SCRN_HEIGHT);
-    drawMandelbrot(prenderer, vpstate->current_offset_x, vpstate->current_offset_y, vpstate->zoom);
+    struct viewport* vp = init_viewport(SCRN_WIDTH, SCRN_HEIGHT);
+    drawMandelbrot(prenderer, vp);
 
     while (running) {
         SDL_Event event;
@@ -57,8 +91,8 @@ int main() {
                 running = false;
                 return 0;
             }
-            if (handle_mouse_events(&event, vpstate)) {
-                drawMandelbrot(prenderer, vpstate->current_offset_x, vpstate->current_offset_y, vpstate->zoom);
+            if (handle_mouse_events(&event, vp)) {
+                drawMandelbrot(prenderer, vp);
             }
         }
     }

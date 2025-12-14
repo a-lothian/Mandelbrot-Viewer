@@ -19,6 +19,8 @@ struct viewport {
     float initial_offset_y;
 
     float zoom;
+
+    int iterations;
 };
 
 struct viewport* init_viewport();

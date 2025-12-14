@@ -17,6 +17,8 @@ struct viewport {
     float initial_offset_y;
 
     float zoom;
+
+    int iterations;
 };
 
 float mapRange(float x, float inMin, float inMax, float outMin, float outMax) {
@@ -43,7 +45,9 @@ struct viewport* init_viewport(int width, int height) {
     vp->initial_offset_x = 0.0f;
     vp->initial_offset_y = 0.0f;
 
-    vp->zoom = 0.01f;
+    vp->zoom = 0.02f;
+
+    vp->iterations = 64;
 
     return vp;
 }
