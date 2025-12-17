@@ -83,12 +83,31 @@ int main() {
     while (running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT || event.type == SDL_KEYDOWN) {
-                SDL_DestroyWindow(pwindow);
-                SDL_DestroyRenderer(prenderer);
+            if (event.type == SDL_QUIT) {
                 running = false;
-                return 0;
             }
+            if (event.type == SDL_KEYDOWN) {
+                // use < and > to change max_iterations
+                switch (event.key.keysym.sym)
+                {
+                case SDLK_PERIOD:
+                    vp->iterations *= 2;
+                    break;
+
+                case SDLK_COMMA:
+                    if (vp->iterations > 2) vp->iterations /= 2;
+                    break;
+                    
+                case SDLK_ESCAPE:
+                    running = false;
+                    break;
+
+                default:
+                    break;
+                }
+                drawMandelbrot(prenderer, scrnTexture, vp);
+            }
+
             if (handle_mouse_events(&event, vp)) {
                 printf("zoom=%f offx=%f offy=%f iters=%d\n",
                     vp->zoom, vp->current_offset_x, vp->current_offset_y, vp->iterations);
@@ -96,5 +115,9 @@ int main() {
             }
         }
     }
+
+    SDL_DestroyWindow(pwindow);
+    SDL_DestroyRenderer(prenderer);
+
     return 0;
 }
