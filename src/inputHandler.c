@@ -3,12 +3,12 @@
 #include <stdbool.h>
 #include <math.h>
 
-float mapRange(float x, float inMin, float inMax, float outMin, float outMax) {
+double mapRange(double x, double inMin, double inMax, double outMin, double outMax) {
     // clamping
-    x = fminf(inMax, x);
-    x = fmaxf(inMin, x);
+    x = fmin(inMax, x);
+    x = fmax(inMin, x);
 
-    return (outMin + ((float)x - inMin) * (outMax - outMin) / (inMax - inMin));
+    return (outMin + (x - inMin) * (outMax - outMin) / (inMax - inMin));
 }
 
 struct viewport* init_viewport(int width, int height) {
@@ -21,13 +21,13 @@ struct viewport* init_viewport(int width, int height) {
     vp->drag_start_x = 0;
     vp->drag_start_y = 0;
 
-    vp->current_offset_x = -0.65f;
-    vp->current_offset_y = 0.0f;
+    vp->current_offset_x = -0.65;
+    vp->current_offset_y = 0.0;
 
-    vp->initial_offset_x = 0.01f;
-    vp->initial_offset_y = 0.0f;
+    vp->initial_offset_x = 0.01;
+    vp->initial_offset_y = 0.0;
 
-    vp->zoom = 0.0025f;
+    vp->zoom = 0.0043;
 
     vp->iterations = 32;
 
@@ -59,8 +59,8 @@ bool handle_mouse_events(SDL_Event* event, struct viewport* state) {
             int dx = current_x - state->drag_start_x;
             int dy = current_y - state->drag_start_y;
 
-            state->current_offset_x = state->initial_offset_x - (float)dx * state->zoom;
-            state->current_offset_y = state->initial_offset_y - (float)dy * state->zoom;
+            state->current_offset_x = state->initial_offset_x - (double)dx * state->zoom;
+            state->current_offset_y = state->initial_offset_y - (double)dy * state->zoom;
 
             redraw_required = true;
         }
@@ -76,21 +76,27 @@ bool handle_mouse_events(SDL_Event* event, struct viewport* state) {
         int mx, my;
         SDL_GetMouseState(&mx, &my);
 
-        float world_x = ((float)(mx - (state->screen_width / 2)) * state->zoom + state->current_offset_x);
-        float world_y = ((float)(mx - (state->screen_height / 2)) * state->zoom + state->current_offset_y);
+        double mouse_screen_x = (double)mx - (state->screen_width * 0.5);
+        double mouse_screen_y = (double)my - (state->screen_height * 0.5);
+
+        double world_x = state->current_offset_x + mouse_screen_x * state->zoom;
+        double world_y = state->current_offset_y + mouse_screen_y * state->zoom;
 
         // variable zoom speed
-        float factor = 1.0f;
-        float zoomFac = event->wheel.y;
+        double factor = 1.0;
+        double zoomFac = event->wheel.y;
         if (zoomFac > 0) {
-            factor = mapRange(zoomFac, 0.0f, 100.0f, 1.0f, 2.5f);
+            factor = mapRange(zoomFac, 0.0, 25.0, 1.0, 2.5);
         } else if (zoomFac < 0) {
-            factor = mapRange(zoomFac, -100.0f, 0.0f, 0.001f, 1.0f);
+            factor = mapRange(zoomFac, -25.0, 0.0, 0.001, 1.0);
         }
 
         state->zoom *= factor;
-        redraw_required = true;
 
+        state->current_offset_x = world_x - mouse_screen_x * state->zoom;
+        state->current_offset_y = world_y - mouse_screen_y * state->zoom;
+
+        redraw_required = true;
         break;
     }
     return redraw_required;

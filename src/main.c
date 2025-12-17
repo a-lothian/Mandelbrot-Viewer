@@ -8,6 +8,8 @@
 #define SDL_MAIN_HANDLED  // updates entry point on windows
 #include <SDL2/SDL.h>
 
+#define PRNT_VP 0
+
 #define SCRN_HEIGHT 600
 #define SCRN_WIDTH 800
 
@@ -17,17 +19,19 @@ const int halfWidth = SCRN_WIDTH / 2;
 bool running = true;
 
 
-int calculateMandelbrotPix(float x, float y, struct viewport* vp) {
-    int iterations;
-    float real_coord = ((x - halfWidth) * vp->zoom) + vp->current_offset_x;
-    float imag_coord = ((y - halfHeight) * vp->zoom) + vp->current_offset_y;
+int calculateMandelbrotPix(int x, int y, struct viewport* vp)
+{
+    double real_coord = ((double)(x - halfWidth) * vp->zoom) + vp->current_offset_x;
+    double imag_coord = ((double)(y - halfHeight) * vp->zoom) + vp->current_offset_y;
 
-    iterations = calculateMandelbrot(real_coord, imag_coord, vp->iterations);
-
-    return iterations;
+    return calculateMandelbrot(real_coord, imag_coord, vp->iterations);
 }
 
+
 void drawMandelbrot(SDL_Renderer* _prenderer, SDL_Texture* screen, struct viewport* vp) {
+    if (PRNT_VP) printf("zoom=%lf offx=%lf offy=%lf iters=%d\n",
+        vp->zoom, vp->current_offset_x, vp->current_offset_y, vp->iterations);
+
     int iterations;
     void* pixels;
     int pitch;
@@ -64,6 +68,7 @@ void drawMandelbrot(SDL_Renderer* _prenderer, SDL_Texture* screen, struct viewpo
 }
 
 int main() {
+    printf("Mandelbrot Viewer in C by Alex Lothian\n Click + Drag to Navigate. Scroll to Zoom.\n < : Half Maximum Iterations\n > : Double Maximum Iterations\n\n\n");
     SDL_Init(SDL_INIT_VIDEO);
     SDL_Window* pwindow = SDL_CreateWindow("Mandelbrot Set", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCRN_WIDTH, SCRN_HEIGHT, 0);
     SDL_Renderer* prenderer = SDL_CreateRenderer(pwindow, -1, SDL_RENDERER_ACCELERATED);
@@ -109,8 +114,6 @@ int main() {
             }
 
             if (handle_mouse_events(&event, vp)) {
-                printf("zoom=%f offx=%f offy=%f iters=%d\n",
-                    vp->zoom, vp->current_offset_x, vp->current_offset_y, vp->iterations);
                 drawMandelbrot(prenderer, scrnTexture, vp);
             }
         }

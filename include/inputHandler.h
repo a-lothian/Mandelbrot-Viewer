@@ -12,13 +12,13 @@ struct viewport {
     int drag_start_x;
     int drag_start_y;
 
-    float current_offset_x;
-    float current_offset_y;
+    double current_offset_x;
+    double current_offset_y;
 
-    float initial_offset_x;
-    float initial_offset_y;
+    double initial_offset_x;
+    double initial_offset_y;
 
-    float zoom;
+    double zoom;
 
     int iterations;
 };
