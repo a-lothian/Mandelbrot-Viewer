@@ -23,7 +23,7 @@ struct viewport {
     int iterations;
 };
 
-struct viewport* init_viewport();
+struct viewport* init_viewport(int width, int height);
 bool handle_mouse_events(SDL_Event* event, struct viewport* state);
 
 #endif

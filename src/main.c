@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <inttypes.h>
 #include "mandelbrot.h"
 #include "inputHandler.h"
 
@@ -15,6 +16,7 @@ const int halfWidth = SCRN_WIDTH / 2;
 
 bool running = true;
 
+
 int calculateMandelbrotPix(float x, float y, struct viewport* vp) {
     int iterations;
     float real_coord = ((x - halfWidth) * vp->zoom) + vp->current_offset_x;
@@ -25,16 +27,10 @@ int calculateMandelbrotPix(float x, float y, struct viewport* vp) {
     return iterations;
 }
 
-void drawMandelbrot(SDL_Renderer* _prenderer, struct viewport* vp) {
+void drawMandelbrot(SDL_Renderer* _prenderer, SDL_Texture* screen, struct viewport* vp) {
     int iterations;
     void* pixels;
     int pitch;
-
-    SDL_Texture* screen = SDL_CreateTexture(_prenderer,
-                                            SDL_PIXELFORMAT_ARGB8888,
-                                            SDL_TEXTUREACCESS_STREAMING,
-                                            SCRN_WIDTH,
-                                            SCRN_HEIGHT);
 
     SDL_LockTexture(screen, NULL, &pixels, &pitch);
     Uint32* target_pixels = (Uint32*)pixels;
@@ -49,7 +45,7 @@ void drawMandelbrot(SDL_Renderer* _prenderer, struct viewport* vp) {
             if (iterations >= vp->iterations) {
                 brightness = 0;
             } else {
-                // scale iterations to fit within 0-255 range relative to the max
+                 // scale iterations to fit within 0-255 range relative to the max
                 brightness = (Uint8)((iterations * 255) / vp->iterations);
             }
 
@@ -71,6 +67,7 @@ int main() {
     SDL_Init(SDL_INIT_VIDEO);
     SDL_Window* pwindow = SDL_CreateWindow("Mandelbrot Set", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCRN_WIDTH, SCRN_HEIGHT, 0);
     SDL_Renderer* prenderer = SDL_CreateRenderer(pwindow, -1, SDL_RENDERER_ACCELERATED);
+    SDL_Texture* scrnTexture = SDL_CreateTexture(prenderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCRN_WIDTH, SCRN_HEIGHT);
 
     if (!prenderer) {
         fprintf(stderr, "Renderer Failed to init");
@@ -80,7 +77,8 @@ int main() {
     }
 
     struct viewport* vp = init_viewport(SCRN_WIDTH, SCRN_HEIGHT);
-    drawMandelbrot(prenderer, vp);
+
+    drawMandelbrot(prenderer, scrnTexture, vp);
 
     while (running) {
         SDL_Event event;
@@ -92,7 +90,9 @@ int main() {
                 return 0;
             }
             if (handle_mouse_events(&event, vp)) {
-                drawMandelbrot(prenderer, vp);
+                printf("zoom=%f offx=%f offy=%f iters=%d\n",
+                    vp->zoom, vp->current_offset_x, vp->current_offset_y, vp->iterations);
+                drawMandelbrot(prenderer, scrnTexture, vp);
             }
         }
     }

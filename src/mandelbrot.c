@@ -1,3 +1,4 @@
+#include "mandelbrot.h"
 #include <stdio.h>
 #include <math.h>
 

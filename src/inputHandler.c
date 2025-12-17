@@ -1,25 +1,7 @@
+#include "inputHandler.h"
 #include <SDL2/SDL.h>
 #include <stdbool.h>
 #include <math.h>
-
-struct viewport {
-    int screen_width;
-    int screen_height;
-
-    bool is_dragging;
-    int drag_start_x;
-    int drag_start_y;
-
-    float current_offset_x;
-    float current_offset_y;
-
-    float initial_offset_x;
-    float initial_offset_y;
-
-    float zoom;
-
-    int iterations;
-};
 
 float mapRange(float x, float inMin, float inMax, float outMin, float outMax) {
     // clamping
@@ -39,15 +21,15 @@ struct viewport* init_viewport(int width, int height) {
     vp->drag_start_x = 0;
     vp->drag_start_y = 0;
 
-    vp->current_offset_x = 0.0f;
+    vp->current_offset_x = -0.65f;
     vp->current_offset_y = 0.0f;
 
-    vp->initial_offset_x = 0.0f;
+    vp->initial_offset_x = 0.01f;
     vp->initial_offset_y = 0.0f;
 
-    vp->zoom = 0.02f;
+    vp->zoom = 0.0025f;
 
-    vp->iterations = 64;
+    vp->iterations = 32;
 
     return vp;
 }
