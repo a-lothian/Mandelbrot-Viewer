@@ -8,7 +8,7 @@
 #define SDL_MAIN_HANDLED  // updates entry point on windows
 #include <SDL2/SDL.h>
 
-#define PRNT_VP 0
+#define PRNT_VP 1
 
 #define SCRN_HEIGHT 600
 #define SCRN_WIDTH 800
@@ -19,30 +19,35 @@ const int halfWidth = SCRN_WIDTH / 2;
 bool running = true;
 
 
-int calculateMandelbrotPix(int x, int y, struct viewport* vp)
-{
-    double real_coord = ((double)(x - halfWidth) * vp->zoom) + vp->current_offset_x;
-    double imag_coord = ((double)(y - halfHeight) * vp->zoom) + vp->current_offset_y;
-
-    return calculateMandelbrot(real_coord, imag_coord, vp->iterations);
-}
-
-
 void drawMandelbrot(SDL_Renderer* _prenderer, SDL_Texture* screen, struct viewport* vp) {
     if (PRNT_VP) printf("zoom=%lf offx=%lf offy=%lf iters=%d\n",
         vp->zoom, vp->current_offset_x, vp->current_offset_y, vp->iterations);
 
     int iterations;
     void* pixels;
-    int pitch;
+    int pitch; // bytes per row
 
     SDL_LockTexture(screen, NULL, &pixels, &pitch);
-    Uint32* target_pixels = (Uint32*)pixels;
+
+    Uint8* row = (Uint8*)pixels;
+
+    const double zoom = vp->zoom; // DISTANCE BETWEEN PIXELS IN WORLD SPACE
+    const double startX = vp->current_offset_x - (double)halfWidth * zoom;
+    const double startY = vp->current_offset_y - (double)halfHeight * zoom;
+
+    const double inverseMax = 255.0 / (double)vp->iterations;
 
     // draw onto screen
     for (int y = 0; y < SCRN_HEIGHT; y++) {
+
+        Uint32* out = (Uint32*)row; 
+
+        // worldspace coordinates
+        double x0 = startX;
+        double y0 = startY + (double)y * zoom;
+
         for (int x = 0; x < SCRN_WIDTH; x++) {
-            iterations = calculateMandelbrotPix(x, y, vp);
+            iterations = calculateMandelbrot(x0, y0, vp->iterations);
 
             Uint8 brightness;
 
@@ -50,15 +55,15 @@ void drawMandelbrot(SDL_Renderer* _prenderer, SDL_Texture* screen, struct viewpo
                 brightness = 0;
             } else {
                  // scale iterations to fit within 0-255 range relative to the max
-                brightness = (Uint8)((iterations * 255) / vp->iterations);
+                brightness = (Uint8)(iterations * inverseMax);
             }
+            
+            // coloring (0xFFRRGGBB format for ARGB8888) + write to buffer
+            out[x] = 0xFF000000u | (brightness << 16) | (brightness << 8) | brightness;
 
-            // coloring (0xFFRRGGBB format for ARGB8888)
-            Uint32 color = (0xFF << 24) | (brightness << 16) | (brightness << 8) | brightness;
-
-            // write to buffer
-            target_pixels[y * SCRN_WIDTH + x] = color;
+            x0 += zoom; // update worldspace x for next loop
         }
+        row += pitch; // update worldspace y for next loop
     }
     SDL_UnlockTexture(screen);
 

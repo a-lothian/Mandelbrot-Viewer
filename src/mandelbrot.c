@@ -5,12 +5,12 @@
 static inline int isKnownInside(double x0, double y0) {
     // test 1. If x0, y0 is within distance of 1/4 from point (-1,0)
     // it is guaranteed to be inside
-    double x1 = x0 + 1.0f;
+    double x1 = x0 + 1.0;
     if (x1 * x1 + y0 * y0 <= 0.0625) return 1;
 
 
     // test 2. If x0, y0, falls within known cardiod region, it is inside.
-    double x = x0 - 0.2f;
+    double x = x0 - 0.25;
     double q = x * x + y0 * y0;
     if (q * (q + x) <= 0.25 * y0 * y0) return 1;
 
@@ -33,8 +33,9 @@ int calculateMandelbrot(double x0, double y0, int max_iterations) {
     double oldx = 0.0;
     double oldy = 0.0;
 
-    const double epsilon = 1e-6;
+    double epsilon2 = 1e-24;
     const int checkInterval = 20;
+    int checkcountdown = checkInterval;
 
     for (int i = 0; i < max_iterations; i++) {
         double x2 = x * x;
@@ -50,15 +51,18 @@ int calculateMandelbrot(double x0, double y0, int max_iterations) {
         x = (x2 - y2) + x0;
 
         // Periodic distance check
-        if (i % checkInterval == 0) {
+        if (i > 50 && --checkcountdown == 0) {
             double dx = x - oldx;
             double dy = y - oldy;
 
-            if (dx * dx + dy * dy < epsilon) {
+            // scale epsilon by point magnitude
+            if (dx * dx + dy * dy < epsilon2 * (x2+y2 + 1.0)) {
                 return max_iterations; // inside set
             }
             oldx = x;
             oldy = y;
+
+            checkcountdown = checkInterval;
         }
     }
 
