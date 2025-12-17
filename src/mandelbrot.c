@@ -7,42 +7,47 @@ struct coord {
     float y;
 };
 
-// where x(0), y(0) is the starting point.
+static inline int isKnownInside(float x0, float y0) {
+    // test 1. If x0, y0 is within distance of 1/4 from point (-1,0)
+    // it is guaranteed to be inside
+    float x1 = x0 + 1.0f;
+    if (x1 * x1 + y0 * y0 <= 0.0625f) return 1;
 
-// new x (real)
-// x(n+1) = x(n)^2 - y(n)^2 + x(0)
-float calculateX(float inX, float inY, float initialX) {
-    return pow(inX, 2) - pow(inY, 2) + initialX;
-}
 
-// new y (imaginary)
-// y(n+1) = 2 * x(n) * y(n) + y(0)
-float calculateY(float inX, float inY, float initialY) {
-    return 2 * inX * inY + initialY;
+    // test 2. If x0, y0, falls within known cardiod region, it is inside.
+    float x = x0 - 0.25f;
+    float q = x * x + y0 * y0;
+    if (q * (q + x) <= 0.25f * y0 * y0) return 1;
+
+
+    return 0;
 }
 
 // calculate if the point(x(n+1),y(n+1)) will escape given enough iterations
 // returns number of iterations required to escape bounding length of 4
-int calculateMandelbrot(float x0, float y0, int iterations) {
-    float x_n = x0;
-    float y_n = y0;
+int calculateMandelbrot(float x0, float y0, int max_iterations) {
+
+    if (isKnownInside(x0, y0)) return max_iterations;
+
+    float x = 0.0f;
+    float y = 0.0f;
 
     float x_next;
     float y_next;
 
-    for (int i = 0; i < iterations; i++) {
-        x_next = calculateX(x_n, y_n, x0);
-        y_next = calculateY(x_n, y_n, y0);
+    for (int i = 0; i < max_iterations; i++) {
+        float x2 = x * x;
+        float y2 = y * y;
 
-        x_n = x_next;
-        y_n = y_next;
-
-        // printf("x: %f , y: %f\n", x_n, y_n);
-
-        if ((x_n * x_n + y_n * y_n) > 4.0) {
-            return i;  // Return the escape iteration count
+        if (x2 + y2 > 4.0f) {
+            return i; // Return the escape iteration count
         }
+
+        float xy = x * y;
+
+        y = (2.0f * xy) + y0;
+        x = (x2 - y2) + x0;
     }
 
-    return iterations;
+    return max_iterations;
 }
