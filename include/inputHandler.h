@@ -2,7 +2,7 @@
 #define MANDELBROT_VIEW
 
 #include <stdbool.h>
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 
 struct viewport {
     int screen_width;

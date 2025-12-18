@@ -5,8 +5,8 @@
 #include "mandelbrot.h"
 #include "inputHandler.h"
 
-#define SDL_MAIN_HANDLED  // updates entry point on windows
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
 
 #define PRNT_VP 1
 
@@ -16,12 +16,16 @@
 const int halfHeight = SCRN_HEIGHT / 2;
 const int halfWidth = SCRN_WIDTH / 2;
 
+Uint64 CLKfrequency;
+
 bool running = true;
 
 
 void drawMandelbrot(SDL_Renderer* _prenderer, SDL_Texture* screen, struct viewport* vp) {
     if (PRNT_VP) printf("zoom=%lf offx=%lf offy=%lf iters=%d\n",
         vp->zoom, vp->current_offset_x, vp->current_offset_y, vp->iterations);
+
+    
 
     int iterations;
     void* pixels;
@@ -68,15 +72,15 @@ void drawMandelbrot(SDL_Renderer* _prenderer, SDL_Texture* screen, struct viewpo
     SDL_UnlockTexture(screen);
 
     // transfer buffer in RAM to VRAM, then draw VRAM
-    SDL_RenderCopy(_prenderer, screen, NULL, NULL);
+    SDL_RenderTexture(_prenderer, screen, NULL, NULL);
     SDL_RenderPresent(_prenderer);
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     printf("Mandelbrot Viewer in C by Alex Lothian\n Click + Drag to Navigate. Scroll to Zoom.\n < : Half Maximum Iterations\n > : Double Maximum Iterations\n\n\n");
     SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window* pwindow = SDL_CreateWindow("Mandelbrot Set", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCRN_WIDTH, SCRN_HEIGHT, 0);
-    SDL_Renderer* prenderer = SDL_CreateRenderer(pwindow, -1, SDL_RENDERER_ACCELERATED);
+    SDL_Window* pwindow = SDL_CreateWindow("Mandelbrot Set", SCRN_WIDTH, SCRN_HEIGHT, 0);
+    SDL_Renderer* prenderer = SDL_CreateRenderer(pwindow, NULL);
     SDL_Texture* scrnTexture = SDL_CreateTexture(prenderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCRN_WIDTH, SCRN_HEIGHT);
 
     if (!prenderer) {
@@ -93,12 +97,12 @@ int main() {
     while (running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
+            if (event.type == SDL_EVENT_QUIT) {
                 running = false;
             }
-            if (event.type == SDL_KEYDOWN) {
+            if (event.type == SDL_EVENT_KEY_DOWN) {
                 // use < and > to change max_iterations
-                switch (event.key.keysym.sym)
+                switch (event.key.key)
                 {
                 case SDLK_PERIOD:
                     vp->iterations *= 2;

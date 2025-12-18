@@ -1,5 +1,5 @@
 #include "inputHandler.h"
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include <stdbool.h>
 #include <math.h>
 
@@ -39,7 +39,7 @@ bool handle_mouse_events(SDL_Event* event, struct viewport* state) {
     bool redraw_required = false;
 
     switch (event->type) {
-    case SDL_MOUSEBUTTONDOWN:
+    case SDL_EVENT_MOUSE_BUTTON_DOWN:
         if (event->button.button == SDL_BUTTON_LEFT) {
             state->is_dragging = true;
 
@@ -51,7 +51,7 @@ bool handle_mouse_events(SDL_Event* event, struct viewport* state) {
         }
         break;
 
-    case SDL_MOUSEMOTION:
+    case SDL_EVENT_MOUSE_MOTION:
         if (state->is_dragging) {
             int current_x = event->motion.x;
             int current_y = event->motion.y;
@@ -66,35 +66,39 @@ bool handle_mouse_events(SDL_Event* event, struct viewport* state) {
         }
         break;
 
-    case SDL_MOUSEBUTTONUP:
+    case SDL_EVENT_MOUSE_BUTTON_UP:
         if (event->button.button == SDL_BUTTON_LEFT) {
             state->is_dragging = false;
         }
         break;
 
-    case SDL_MOUSEWHEEL:
-        int mx, my;
+    case SDL_EVENT_MOUSE_WHEEL:
+        float mx, my;
         SDL_GetMouseState(&mx, &my);
 
         double mouse_screen_x = (double)mx - (state->screen_width * 0.5);
         double mouse_screen_y = (double)my - (state->screen_height * 0.5);
 
+
         double world_x = state->current_offset_x + mouse_screen_x * state->zoom;
         double world_y = state->current_offset_y + mouse_screen_y * state->zoom;
 
-        // variable zoom speed
+        double zoom_intensity = 0.25;
         double factor = 1.0;
-        double zoomFac = event->wheel.y;
-        if (zoomFac > 0) {
-            factor = mapRange(zoomFac, 0.0, 25.0, 1.0, 2.5);
-        } else if (zoomFac < 0) {
-            factor = mapRange(zoomFac, -25.0, 0.0, 0.001, 1.0);
+
+        if (event->wheel.y > 0) {
+            factor = 1.0 / (1.0 + (event->wheel.y * zoom_intensity));
+        }
+        else if (event->wheel.y < 0) {
+            factor = 1.0 + (-event->wheel.y * zoom_intensity);
         }
 
         state->zoom *= factor;
 
         state->current_offset_x = world_x - mouse_screen_x * state->zoom;
         state->current_offset_y = world_y - mouse_screen_y * state->zoom;
+
+        printf("zoomFac: %f | factor: %lf | new_zoom: %le\n", event->wheel.y, factor, state->zoom);
 
         redraw_required = true;
         break;
