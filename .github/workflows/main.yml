@@ -39,7 +39,8 @@ jobs:
     - name: Setup SDL
       uses: libsdl-org/setup-sdl@v1
       with:
-        version: 2-latest
+        install-linux-dependencies: true
+        version: 3-latest
 
     - name: Configure CMake
       run: cmake -B build -DCMAKE_BUILD_TYPE=Release
@@ -54,7 +55,7 @@ jobs:
       run: |
         mkdir Mandelbrot-Windows-x64
         cp build/Release/Mandelbrot.exe Mandelbrot-Windows-x64/
-        cp build/Release/SDL2.dll Mandelbrot-Windows-x64/
+        cp build/Release/SDL3.dll Mandelbrot-Windows-x64/
         7z a Mandelbrot-Windows.zip Mandelbrot-Windows-x64/
         
     - name: Upload Windows Artifact
