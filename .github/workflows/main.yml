@@ -35,12 +35,12 @@ jobs:
         fetch-depth: 0
         ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
 
-    # ensure SDL is setup on all platforms
+    # ensure SDL is setup on all platforms, known stable version
     - name: Setup SDL
       uses: libsdl-org/setup-sdl@v1
       with:
         install-linux-dependencies: true
-        version: 3-latest
+        version: 3.2.28
 
     - name: Configure CMake
       run: cmake -B build -DCMAKE_BUILD_TYPE=Release
