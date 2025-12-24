@@ -97,7 +97,7 @@ bool handle_mouse_events(SDL_Event* event, struct viewport* state) {
         state->current_offset_x = world_x - mouse_screen_x * state->zoom;
         state->current_offset_y = world_y - mouse_screen_y * state->zoom;
 
-        printf("zoomFac: %f | factor: %lf | new_zoom: %le\n", event->wheel.y, factor, state->zoom);
+        // printf("zoomFac: %f | factor: %lf | new_zoom: %le\n", event->wheel.y, factor, state->zoom);
 
         redraw_required = true;
         break;

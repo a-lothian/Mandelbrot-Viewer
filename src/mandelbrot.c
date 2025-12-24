@@ -73,16 +73,6 @@ int calculateMandelbrot(double x0, double y0, int max_iterations) {
     return max_iterations;
 }
 
-struct mandelbrotRoutineData* init_routine_data(int start_y, int end_y, int scrn_width, struct viewport* vp, Uint32* buffer) {
-    struct mandelbrotRoutineData* ptr = (struct mandelbrotRoutineData*)malloc(sizeof(struct mandelbrotRoutineData));
-    ptr->start_y = start_y;
-    ptr->end_y = end_y;
-    ptr->scrn_width = scrn_width;
-    ptr->vp = vp;
-    ptr->local_buffer = buffer;
-    return ptr;
-}
-
 void* calculateMandelbrotRoutine(void* arg) {
     struct mandelbrotRoutineData* data = (struct mandelbrotRoutineData*)arg;
     int iterations;
@@ -101,6 +91,11 @@ void* calculateMandelbrotRoutine(void* arg) {
 
     // draw onto screen
     for (int y = data->start_y; y < data->end_y; y++) {
+        // check for quick return
+        if (*(data->kill_signal)) {
+            return NULL;
+        }
+
         Uint32* out = (Uint32*)row;
 
         // worldspace coordinates

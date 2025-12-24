@@ -22,20 +22,19 @@ const int halfWidth = SCRN_WIDTH / 2;
 const int TARGET_FPS = 60;
 const Uint64 TARGET_FRAME_TIME = 1000 / TARGET_FPS;
 
-long core_count;
-pthread_t* threads;
-
-void drawBuffer(SDL_Renderer* _prenderer, SDL_Texture* screen, Uint32* pixel_buffer, struct mandelbrotRoutineData* renderData) {
-    for (int i = 0; i < core_count; i++) {
-        pthread_create(&threads[i], NULL, calculateMandelbrotRoutine, &renderData[i]);
-    }
+void drawBuffer(SDL_Renderer* _prenderer, SDL_Texture* screen, Uint32* pixel_buffer, struct mandelbrotRoutineData* renderData, long core_count, pthread_t* threads) {
+    *renderData[0].kill_signal = true;  // reference by pointer; kills all
 
     for (int i = 0; i < core_count; i++) {
         pthread_join(threads[i], NULL);
     }
 
-    // transfer buffer in RAM to VRAM
-    SDL_UpdateTexture(screen, NULL, pixel_buffer, sizeof(Uint32) * SCRN_WIDTH);
+    *renderData[0].kill_signal = false;
+    SDL_RenderClear(_prenderer);
+
+    for (int i = 0; i < core_count; i++) {
+        pthread_create(&threads[i], NULL, calculateMandelbrotRoutine, &renderData[i]);
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -56,8 +55,9 @@ int main(int argc, char* argv[]) {
 
     struct viewport* vp = init_viewport(SCRN_WIDTH, SCRN_HEIGHT);
 
-    core_count = get_num_logical_cores();
-    threads = calloc(core_count, sizeof(pthread_t));
+    long core_count = get_num_logical_cores();
+    pthread_t* threads = calloc(core_count, sizeof(pthread_t));
+    volatile bool kill_threads = false;
 
     int rows_per_thread = SCRN_HEIGHT / core_count;
 
@@ -70,11 +70,12 @@ int main(int argc, char* argv[]) {
         renderData[i].scrn_width = SCRN_WIDTH;
         renderData[i].vp = vp;
         renderData[i].local_buffer = renderBuffer;
+        renderData[i].kill_signal = &kill_threads;
     }
 
     bool running = true;
     bool redraw = false;
-    drawBuffer(prenderer, scrnTexture, renderBuffer, renderData);
+    drawBuffer(prenderer, scrnTexture, renderBuffer, renderData, core_count, threads);
 
     while (running) {
         frameStart = SDL_GetTicks();
@@ -112,9 +113,12 @@ int main(int argc, char* argv[]) {
         }
 
         if (redraw) {
-            drawBuffer(prenderer, scrnTexture, renderBuffer, renderData);
+            drawBuffer(prenderer, scrnTexture, renderBuffer, renderData, core_count, threads);
             redraw = false;
         }
+
+        // transfer buffer in RAM to VRAM
+        SDL_UpdateTexture(scrnTexture, NULL, renderBuffer, sizeof(Uint32) * SCRN_WIDTH);
 
         // draw VRAM
         SDL_RenderTexture(prenderer, scrnTexture, NULL, NULL);
