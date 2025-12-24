@@ -1,6 +1,7 @@
 #include "inputHandler.h"
-#include <SDL3/SDL.h>
+#include <SDL3/SDL_stdinc.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <math.h>
 
 double mapRange(double x, double inMin, double inMax, double outMin, double outMax) {
@@ -12,7 +13,7 @@ double mapRange(double x, double inMin, double inMax, double outMin, double outM
 }
 
 struct viewport* init_viewport(int width, int height) {
-    struct viewport* vp = (struct viewport*)malloc(sizeof(struct viewport));
+    struct viewport* vp = malloc(sizeof(struct viewport));
 
     vp->screen_width = width;
     vp->screen_height = height;
@@ -79,7 +80,6 @@ bool handle_mouse_events(SDL_Event* event, struct viewport* state) {
         double mouse_screen_x = (double)mx - (state->screen_width * 0.5);
         double mouse_screen_y = (double)my - (state->screen_height * 0.5);
 
-
         double world_x = state->current_offset_x + mouse_screen_x * state->zoom;
         double world_y = state->current_offset_y + mouse_screen_y * state->zoom;
 
@@ -88,8 +88,7 @@ bool handle_mouse_events(SDL_Event* event, struct viewport* state) {
 
         if (event->wheel.y > 0) {
             factor = 1.0 / (1.0 + (event->wheel.y * zoom_intensity));
-        }
-        else if (event->wheel.y < 0) {
+        } else if (event->wheel.y < 0) {
             factor = 1.0 + (-event->wheel.y * zoom_intensity);
         }
 
