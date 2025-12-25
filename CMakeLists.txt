@@ -11,6 +11,7 @@ add_executable(Mandelbrot
     src/mandelbrot.c
     src/inputHandler.c
     src/core_count.c
+    src/colour_palette.c
 )
 
 target_link_libraries(Mandelbrot PRIVATE SDL3::SDL3)

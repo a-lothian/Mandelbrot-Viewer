@@ -7,6 +7,7 @@
 #include "mandelbrot.h"
 #include "inputHandler.h"
 #include "core_count.h"
+#include "colour_palette.h"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -56,6 +57,9 @@ int main(int argc, char* argv[]) {
 
     struct viewport* vp = init_viewport(SCRN_WIDTH, SCRN_HEIGHT);
 
+    // generate colour palette
+    Uint32* palette = generateColourPalette(palette_inferno, 8, 2048);
+
     long core_count = get_num_logical_cores();
     pthread_t* threads = calloc(core_count, sizeof(pthread_t));
     volatile bool kill_threads = false;
@@ -70,6 +74,7 @@ int main(int argc, char* argv[]) {
         renderData[i].end_y = (i == core_count - 1) ? SCRN_HEIGHT : (i + 1) * rows_per_thread;  // last thread takes remaining rows
         renderData[i].scrn_width = SCRN_WIDTH;
         renderData[i].vp = vp;
+        renderData[i].palette = palette;
         renderData[i].local_buffer = renderBuffer;
         renderData[i].kill_signal = &kill_threads;
         renderData[i].start_render_frac = 8;

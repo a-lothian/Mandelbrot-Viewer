@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <unistd.h>
 
 #include "inputHandler.h"
 
@@ -73,6 +72,11 @@ int calculateMandelbrot(double x0, double y0, int max_iterations) {
     return max_iterations;
 }
 
+// assume min is 0 for both inputs
+int fast_map_range(int value, int in_max, int out_max) {
+    return (value * out_max) / in_max;
+}
+
 void* calculateMandelbrotRoutine(void* arg) {
     struct mandelbrotRoutineData* data = (struct mandelbrotRoutineData*)arg;
     int iterations;
@@ -123,7 +127,8 @@ void* calculateMandelbrotRoutine(void* arg) {
                 // copy to neighboring cells depending on render fraction
                 for (int k = 0; k < data->start_render_frac; k++) {
                     if ((x + k) < data->scrn_width) {  // check if within buffer
-                        out[x + k] = 0xFF000000u | (brightness << 16) | (brightness << 8) | brightness;
+                        // out[x + k] = 0xFF000000u | (brightness << 16) | (brightness << 8) | brightness;
+                        out[x + k] = data->palette[fast_map_range(iterations, data->vp->iterations, 2048)];
                     }
                 }
 
