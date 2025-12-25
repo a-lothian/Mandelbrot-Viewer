@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <unistd.h>
 
-#include <SDL3/SDL_render.h>  // for SDL_texture
 #include "inputHandler.h"
 
 static inline int isKnownInside(double x0, double y0) {
@@ -81,7 +81,7 @@ void* calculateMandelbrotRoutine(void* arg) {
     int halfWidth = data->vp->screen_width / 2;
     int halfHeight = data->vp->screen_height / 2;
 
-    Uint8* row = (Uint8*)data->local_buffer + (data->start_y * pitch);
+    Uint8* row;
 
     const double zoom = data->vp->zoom;  // DISTANCE BETWEEN PIXELS IN WORLD SPACE
     double world_top = data->vp->current_offset_y - ((double)halfHeight * zoom);
@@ -89,37 +89,59 @@ void* calculateMandelbrotRoutine(void* arg) {
 
     const double inverseMax = 255.0 / (double)data->vp->iterations;
 
-    // draw onto screen
-    for (int y = data->start_y; y < data->end_y; y++) {
-        // check for quick return
-        if (*(data->kill_signal)) {
-            return NULL;
-        }
+    // render fraction halves; 8 -> 4 -> 2 -> 1 -> return
+    while (data->start_render_frac >= 1) {
+        row = (Uint8*)data->local_buffer + (data->start_y * pitch);
 
-        Uint32* out = (Uint32*)row;
-
-        // worldspace coordinates
-        double x0 = world_left;
-        double y0 = world_top + (double)y * zoom;
-
-        for (int x = 0; x < data->scrn_width; x++) {
-            iterations = calculateMandelbrot(x0, y0, data->vp->iterations);
-
-            Uint8 brightness;
-
-            if (iterations >= data->vp->iterations) {
-                brightness = 0;
-            } else {
-                // scale iterations to fit within 0-255 range relative to the max
-                brightness = (Uint8)(iterations * inverseMax);
+        // draw onto screen
+        // render factor 8: render every 8th pixel, copy to other pixels, then half render factor + repeat until 1.
+        for (int y = data->start_y; y < data->end_y; y += data->start_render_frac) {
+            // check for quick return
+            if (*(data->kill_signal)) {
+                return NULL;
             }
 
-            // coloring (0xFFRRGGBB format for ARGB8888) + write to buffer
-            out[x] = 0xFF000000u | (brightness << 16) | (brightness << 8) | brightness;
+            Uint32* out = (Uint32*)row;
 
-            x0 += zoom;  // update worldspace x for next loop
+            // worldspace coordinates
+            double x0 = world_left;
+            double y0 = world_top + (double)y * zoom;
+
+            for (int x = 0; x < data->scrn_width; x += data->start_render_frac) {
+                iterations = calculateMandelbrot(x0, y0, data->vp->iterations);
+
+                Uint8 brightness;
+
+                if (iterations >= data->vp->iterations) {
+                    brightness = 0;
+                } else {
+                    // scale iterations to fit within 0-255 range relative to the max
+                    brightness = (Uint8)(iterations * inverseMax);
+                }
+
+                // coloring (0xFFRRGGBB format for ARGB8888) + write to buffer
+                // copy to neighboring cells depending on render fraction
+                for (int k = 0; k < data->start_render_frac; k++) {
+                    if ((x + k) < data->scrn_width) {  // check if within buffer
+                        out[x + k] = 0xFF000000u | (brightness << 16) | (brightness << 8) | brightness;
+                    }
+                }
+
+                x0 += zoom * data->start_render_frac;  // update worldspace x for next loop, with respect to render_frac
+            }
+            for (int p = 1; p < data->start_render_frac; p++) {
+                int target_y = y + p;
+                if (target_y < data->end_y) {
+                    Uint8* src = (Uint8*)data->local_buffer + (y * pitch);
+                    Uint8* dst = (Uint8*)data->local_buffer + (target_y * pitch);
+                    memcpy(dst, src, pitch);
+                }
+            }
+            row += pitch * data->start_render_frac;  // update worldspace y for next loop
         }
-        row += pitch;  // update worldspace y for next loop
+        if (data->start_render_frac == 1) {
+            return NULL;
+        }
+        data->start_render_frac /= 2;
     }
-    return NULL;
 }

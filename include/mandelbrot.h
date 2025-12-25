@@ -10,6 +10,7 @@ struct mandelbrotRoutineData {
     struct viewport* vp;
     Uint32* local_buffer;
     volatile bool* kill_signal;
+    int start_render_frac;
 };
 
 int calculateMandelbrot(double x0, double y0, int iterations);

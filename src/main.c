@@ -33,6 +33,7 @@ void drawBuffer(SDL_Renderer* _prenderer, SDL_Texture* screen, Uint32* pixel_buf
     SDL_RenderClear(_prenderer);
 
     for (int i = 0; i < core_count; i++) {
+        renderData[i].start_render_frac = 8;
         pthread_create(&threads[i], NULL, calculateMandelbrotRoutine, &renderData[i]);
     }
 }
@@ -71,6 +72,7 @@ int main(int argc, char* argv[]) {
         renderData[i].vp = vp;
         renderData[i].local_buffer = renderBuffer;
         renderData[i].kill_signal = &kill_threads;
+        renderData[i].start_render_frac = 8;
     }
 
     bool running = true;
