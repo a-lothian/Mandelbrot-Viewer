@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
         renderData[i].start_render_frac = 8;
     }
 
-    int iteration_multiplier = 1;
+    double iteration_multiplier = 1.0;
     vp->iterations = calculateIterations(vp->zoom) * iteration_multiplier;
 
     bool running = true;
@@ -121,7 +121,7 @@ int main(int argc, char* argv[]) {
                     break;
 
                 case SDLK_COMMA:
-                    if (iteration_multiplier > 1) {
+                    if (iteration_multiplier > 0.0625) {
                         iteration_multiplier /= 2;
                     }
                     break;
@@ -142,7 +142,8 @@ int main(int argc, char* argv[]) {
         }
 
         if (redraw) {
-            vp->iterations = calculateIterations(vp->zoom) * iteration_multiplier;
+            int it = (int)(calculateIterations(vp->zoom) * iteration_multiplier);
+            vp->iterations = (it < 1) ? 1 : it;
             drawBuffer(prenderer, scrnTexture, renderBuffer, renderData, core_count, threads);
             redraw = false;
         }
