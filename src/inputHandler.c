@@ -22,15 +22,15 @@ struct viewport* init_viewport(int width, int height) {
     vp->drag_start_x = 0;
     vp->drag_start_y = 0;
 
-    vp->current_offset_x = -0.65;
+    vp->current_offset_x = -0.72;
     vp->current_offset_y = 0.0;
 
     vp->initial_offset_x = 0.01;
     vp->initial_offset_y = 0.0;
 
-    vp->zoom = 0.0043;
+    vp->zoom = 0.0032;
 
-    vp->iterations = 32;
+    vp->iterations = 64;
 
     return vp;
 }

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <pthread.h>
+#include <math.h>
 
 #include "mandelbrot.h"
 #include "inputHandler.h"
@@ -37,6 +38,22 @@ void drawBuffer(SDL_Renderer* _prenderer, SDL_Texture* screen, Uint32* pixel_buf
         renderData[i].start_render_frac = 8;
         pthread_create(&threads[i], NULL, calculateMandelbrotRoutine, &renderData[i]);
     }
+}
+
+int calculateIterations(double zoom) {
+    if (zoom <= 0.0)
+        return 5000;
+
+    double magnification = 1.0 / zoom;
+
+    // "100 per decade" heuristic
+    int iter = 40 + (100 * log10(magnification));
+
+    if (iter < 32) {
+        return 32;
+    }
+
+    return iter;
 }
 
 int main(int argc, char* argv[]) {
@@ -80,8 +97,12 @@ int main(int argc, char* argv[]) {
         renderData[i].start_render_frac = 8;
     }
 
+    int iteration_multiplier = 1;
+    vp->iterations = calculateIterations(vp->zoom) * iteration_multiplier;
+
     bool running = true;
     bool redraw = false;
+
     drawBuffer(prenderer, scrnTexture, renderBuffer, renderData, core_count, threads);
 
     while (running) {
@@ -96,12 +117,13 @@ int main(int argc, char* argv[]) {
                 // use < and > to change max_iterations
                 switch (event.key.key) {
                 case SDLK_PERIOD:
-                    vp->iterations *= 2;
+                    iteration_multiplier *= 2;
                     break;
 
                 case SDLK_COMMA:
-                    if (vp->iterations > 2)
-                        vp->iterations /= 2;
+                    if (iteration_multiplier > 1) {
+                        iteration_multiplier /= 2;
+                    }
                     break;
 
                 case SDLK_ESCAPE:
@@ -120,6 +142,7 @@ int main(int argc, char* argv[]) {
         }
 
         if (redraw) {
+            vp->iterations = calculateIterations(vp->zoom) * iteration_multiplier;
             drawBuffer(prenderer, scrnTexture, renderBuffer, renderData, core_count, threads);
             redraw = false;
         }
