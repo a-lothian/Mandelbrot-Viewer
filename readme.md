@@ -2,6 +2,10 @@
 
 _A Multithreaded Mandelbrot set viewer written in C using SDL3._
 
+<p align="center">
+  <img src="assets/demo.jpg" width="45%" />
+</p>
+
 ## Features
 
 - Mouse controls: Dragging, Zooming
@@ -66,16 +70,16 @@ _A Multithreaded Mandelbrot set viewer written in C using SDL3._
 ## Image Showcase
 
 <p align="center">
-  <img src="assets/demo.jpg" width="45%" />
   <img src="assets/demo1.jpg" width="45%" />
-</p>
-
-<p align="center">
   <img src="assets/demo2.jpg" width="45%" />
-  <img src="assets/demo3.jpg" width="45%" />
 </p>
 
 <p align="center">
+  <img src="assets/demo3.jpg" width="45%" />
   <img src="assets/demo4.jpg" width="45%" />
+</p>
+
+<p align="center">
   <img src="assets/demo5.jpg" width="45%" />
+  <img src="assets/demo6.jpg" width="45%" />
 </p>
