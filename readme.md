@@ -45,7 +45,7 @@ _A Multithreaded Mandelbrot set viewer written in C using SDL3._
 1.  **Clone the repository:**
 
     ```bash
-    git clone [https://github.com/a-lothian/Mandelbrot-Viewer](https://github.com/a-lothian/Mandelbrot-Viewer)
+    git clone https://github.com/a-lothian/Mandelbrot-Viewer
     cd Mandelbrot-Viewer
     ```
 
