@@ -15,8 +15,8 @@
 
 #define PRNT_VP 1
 
-#define SCRN_HEIGHT 600
-#define SCRN_WIDTH 800
+#define SCRN_HEIGHT 800
+#define SCRN_WIDTH 1500
 
 const int halfHeight = SCRN_HEIGHT / 2;
 const int halfWidth = SCRN_WIDTH / 2;
@@ -24,7 +24,7 @@ const int halfWidth = SCRN_WIDTH / 2;
 const int TARGET_FPS = 60;
 const Uint64 TARGET_FRAME_TIME = 1000 / TARGET_FPS;
 
-void drawBuffer(SDL_Renderer* _prenderer, SDL_Texture* screen, Uint32* pixel_buffer, struct mandelbrotRoutineData* renderData, long core_count, pthread_t* threads) {
+void drawBuffer(SDL_Renderer* _prenderer, SDL_Texture* screen, Uint32* pixel_buffer, struct mandelbrotRoutineData* renderData, long core_count, pthread_t* threads, bool draw_smooth) {
     *renderData[0].kill_signal = true;  // reference by pointer; kills all
 
     for (int i = 0; i < core_count; i++) {
@@ -35,7 +35,8 @@ void drawBuffer(SDL_Renderer* _prenderer, SDL_Texture* screen, Uint32* pixel_buf
     SDL_RenderClear(_prenderer);
 
     for (int i = 0; i < core_count; i++) {
-        renderData[i].start_render_frac = 8;
+        renderData[i].start_render_frac = 32;
+        renderData[i].render_smooth = draw_smooth;
         pthread_create(&threads[i], NULL, calculateMandelbrotRoutine, &renderData[i]);
     }
 }
@@ -57,9 +58,9 @@ int calculateIterations(double zoom) {
 }
 
 int main(int argc, char* argv[]) {
-    printf("Mandelbrot Viewer in C by Alex Lothian\n Click + Drag to Navigate. Scroll to Zoom.\n < : Half Maximum Iterations\n > : Double Maximum Iterations\n\n\n");
+    printf("Mandelbrot Viewer in C by Alex Lothian\n Click + Drag to Navigate. Scroll to Zoom.\n < : Half Maximum Iterations\n > : Double Maximum Iterations\n / : Toggle Cyclic Shading Mode\n\n\n");
     SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window* pwindow = SDL_CreateWindow("Mandelbrot Set", SCRN_WIDTH, SCRN_HEIGHT, 0);
+    SDL_Window* pwindow = SDL_CreateWindow("Mandelbrot Set", SCRN_WIDTH, SCRN_HEIGHT, SDL_WINDOW_HIGH_PIXEL_DENSITY);
     SDL_Renderer* prenderer = SDL_CreateRenderer(pwindow, NULL);
     SDL_Texture* scrnTexture = SDL_CreateTexture(prenderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCRN_WIDTH, SCRN_HEIGHT);
     Uint32* renderBuffer = malloc(sizeof(Uint32) * SCRN_HEIGHT * SCRN_WIDTH);
@@ -75,13 +76,18 @@ int main(int argc, char* argv[]) {
     struct viewport* vp = init_viewport(SCRN_WIDTH, SCRN_HEIGHT);
 
     // generate colour palette
-    Uint32* palette = generateColourPalette(palette_inferno, 8, 2048);
+    Uint32* palette = generateColourPalette(palette_psych, 8, 2048);
 
     long core_count = get_num_logical_cores();
     pthread_t* threads = calloc(core_count, sizeof(pthread_t));
     volatile bool kill_threads = false;
 
     int rows_per_thread = SCRN_HEIGHT / core_count;
+
+    // render options
+    bool draw_smooth = true;
+    double iteration_multiplier = 1.0;
+    vp->iterations = calculateIterations(vp->zoom) * iteration_multiplier;
 
     struct mandelbrotRoutineData* renderData = malloc(core_count * sizeof(struct mandelbrotRoutineData));
 
@@ -92,18 +98,17 @@ int main(int argc, char* argv[]) {
         renderData[i].scrn_width = SCRN_WIDTH;
         renderData[i].vp = vp;
         renderData[i].palette = palette;
+        renderData[i].palette_size = 2048;
+        renderData[i].render_smooth = draw_smooth;
         renderData[i].local_buffer = renderBuffer;
         renderData[i].kill_signal = &kill_threads;
-        renderData[i].start_render_frac = 8;
+        renderData[i].start_render_frac = 32;
     }
-
-    double iteration_multiplier = 1.0;
-    vp->iterations = calculateIterations(vp->zoom) * iteration_multiplier;
 
     bool running = true;
     bool redraw = false;
 
-    drawBuffer(prenderer, scrnTexture, renderBuffer, renderData, core_count, threads);
+    drawBuffer(prenderer, scrnTexture, renderBuffer, renderData, core_count, threads, draw_smooth);
 
     while (running) {
         frameStart = SDL_GetTicks();
@@ -126,6 +131,10 @@ int main(int argc, char* argv[]) {
                     }
                     break;
 
+                case SDLK_SLASH:
+                    draw_smooth = !draw_smooth;
+                    break;
+
                 case SDLK_ESCAPE:
                     running = false;
                     break;
@@ -144,7 +153,7 @@ int main(int argc, char* argv[]) {
         if (redraw) {
             int it = (int)(calculateIterations(vp->zoom) * iteration_multiplier);
             vp->iterations = (it < 1) ? 1 : it;
-            drawBuffer(prenderer, scrnTexture, renderBuffer, renderData, core_count, threads);
+            drawBuffer(prenderer, scrnTexture, renderBuffer, renderData, core_count, threads, draw_smooth);
             redraw = false;
         }
 

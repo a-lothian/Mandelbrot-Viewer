@@ -9,9 +9,11 @@ struct mandelbrotRoutineData {
     int scrn_width;
     struct viewport* vp;
     Uint32* palette;
+    int palette_size;
     Uint32* local_buffer;
     volatile bool* kill_signal;
     int start_render_frac;
+    bool render_smooth;
 };
 
 int calculateMandelbrot(double x0, double y0, int iterations);

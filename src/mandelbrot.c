@@ -12,7 +12,7 @@ static inline int isKnownInside(double x0, double y0) {
     if (x1 * x1 + y0 * y0 <= 0.0625)
         return 1;
 
-    // test 2. If x0, y0, falls within known cardiod region, it is inside.
+    // test 2. If x0, y0, falls within known cardioid region, it is inside.
     double x = x0 - 0.25;
     double q = x * x + y0 * y0;
     if (q * (q + x) <= 0.25 * y0 * y0)
@@ -44,12 +44,14 @@ int calculateMandelbrot(double x0, double y0, int max_iterations) {
         double x2 = x * x;
         double y2 = y * y;
 
+        // escape check
         if (x2 + y2 > 4.0) {
             return i;  // Return the escape iteration count
         }
 
         double xy = x * y;
 
+        // calculate next point
         y = (2.0 * xy) + y0;
         x = (x2 - y2) + x0;
 
@@ -74,12 +76,12 @@ int calculateMandelbrot(double x0, double y0, int max_iterations) {
 
 // assume min is 0 for both inputs
 int fast_map_range(int value, int in_max, int out_max) {
+    value = value >= in_max ? 0 : value;  // clamp max
     return (value * out_max) / in_max;
 }
 
 void* calculateMandelbrotRoutine(void* arg) {
     struct mandelbrotRoutineData* data = (struct mandelbrotRoutineData*)arg;
-    int iterations;
     int pitch = sizeof(Uint32) * data->vp->screen_width;
 
     int halfWidth = data->vp->screen_width / 2;
@@ -91,7 +93,7 @@ void* calculateMandelbrotRoutine(void* arg) {
     double world_top = data->vp->current_offset_y - ((double)halfHeight * zoom);
     double world_left = data->vp->current_offset_x - ((double)halfWidth * zoom);
 
-    const double inverseMax = 255.0 / (double)data->vp->iterations;
+    double palette_scale = (double)(data->palette_size) / (double)data->vp->iterations;  // for cyclic rendering
 
     // render fraction halves; 8 -> 4 -> 2 -> 1 -> return
     while (data->start_render_frac >= 1) {
@@ -111,29 +113,59 @@ void* calculateMandelbrotRoutine(void* arg) {
             double x0 = world_left;
             double y0 = world_top + (double)y * zoom;
 
-            for (int x = 0; x < data->scrn_width; x += data->start_render_frac) {
-                iterations = calculateMandelbrot(x0, y0, data->vp->iterations);
+            if (data->render_smooth) {
+                // SMOOTH CYCLIC RENDERING
+                for (int x = 0; x < data->scrn_width; x += data->start_render_frac) {
+                    int iterations = calculateMandelbrot(x0, y0, data->vp->iterations);
 
-                Uint8 brightness;
+                    int colorIndex = (int)(iterations * palette_scale);
 
-                if (iterations >= data->vp->iterations) {
-                    brightness = 0;
-                } else {
-                    // scale iterations to fit within 0-255 range relative to the max
-                    brightness = (Uint8)(iterations * inverseMax);
-                }
+                    Uint32 colour;
+                    if (iterations == data->vp->iterations) {  // check inside of mandelbrot
+                        colour = data->palette[0];
+                    } else if (colorIndex >= data->palette_size) {
+                        colour = data->palette[0];
+                    } else {
+                        int frequency = 10;
+                        int col_index = iterations * frequency;
 
-                // coloring (0xFFRRGGBB format for ARGB8888) + write to buffer
-                // copy to neighboring cells depending on render fraction
-                for (int k = 0; k < data->start_render_frac; k++) {
-                    if ((x + k) < data->scrn_width) {  // check if within buffer
-                        // out[x + k] = 0xFF000000u | (brightness << 16) | (brightness << 8) | brightness;
-                        out[x + k] = data->palette[fast_map_range(iterations, data->vp->iterations, 2048)];
+                        // wrap around the palette
+                        int index = col_index % data->palette_size;
+
+                        if (index < 0)
+                            index = 0;
+
+                        colour = data->palette[index];
                     }
+
+                    // coloring (0xFFRRGGBB format for ARGB8888) + write to buffer
+                    // copy to neighboring cells depending on render fraction
+                    for (int k = 0; k < data->start_render_frac; k++) {
+                        if ((x + k) < data->scrn_width) {  // check if within buffer
+                            out[x + k] = colour;
+                        }
+                    }
+
+                    x0 += zoom * data->start_render_frac;  // update worldspace x for next loop, with respect to render_frac
                 }
 
-                x0 += zoom * data->start_render_frac;  // update worldspace x for next loop, with respect to render_frac
+            } else {
+                // FAST RENDERING
+                for (int x = 0; x < data->scrn_width; x += data->start_render_frac) {
+                    int iterations = calculateMandelbrot(x0, y0, data->vp->iterations);
+
+                    // coloring (0xFFRRGGBB format for ARGB8888) + write to buffer
+                    // copy to neighboring cells depending on render fraction
+                    for (int k = 0; k < data->start_render_frac; k++) {
+                        if ((x + k) < data->scrn_width) {  // check if within buffer
+                            out[x + k] = data->palette[fast_map_range(iterations, data->vp->iterations, data->palette_size - 1)];
+                        }
+                    }
+
+                    x0 += zoom * data->start_render_frac;  // update worldspace x for next loop, with respect to render_frac
+                }
             }
+
             for (int p = 1; p < data->start_render_frac; p++) {
                 int target_y = y + p;
                 if (target_y < data->end_y) {
