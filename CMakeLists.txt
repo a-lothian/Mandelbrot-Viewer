@@ -20,7 +20,7 @@ if(UNIX AND NOT APPLE)
   target_link_libraries(Mandelbrot PRIVATE m)
 endif()
 
-# add include directory explicitly so <SDL2/SDL.h> works everywhere
+# add include directory explicitly so <SDL3/SDL.h> works everywhere
 target_include_directories(Mandelbrot PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
