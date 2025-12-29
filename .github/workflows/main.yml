@@ -39,9 +39,15 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential git cmake ninja-build pkg-config \
-        libasound2-dev libpulse-dev libx11-dev libxext-dev libxrandr-dev \
-        libxcursor-dev libxi-dev libxinerama-dev libxxf86vm-dev libxss-dev \
-        libgl1-mesa-dev libwayland-dev libxkbcommon-dev
+        gnome-desktop-testing \
+        libasound2-dev libpulse-dev libaudio-dev libjack-dev libsndio-dev libsamplerate0-dev \
+        libusb-1.0-0-dev \
+        libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev \
+        libxinerama-dev libxxf86vm-dev libxtst-dev \
+        libwayland-dev libxkbcommon-dev libdrm-dev libgbm-dev \
+        libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev \
+        libdbus-1-dev libibus-1.0-dev libudev-dev fcitx-libs-dev \
+        libdecor-0-dev
 
     # MacOS
     - name: Install Dependencies (macOS)
