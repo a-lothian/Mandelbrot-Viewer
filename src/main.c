@@ -36,7 +36,7 @@ void drawBuffer(SDL_Renderer* _prenderer, SDL_Texture* screen, Uint32* pixel_buf
     SDL_RenderClear(_prenderer);
 
     for (int i = 0; i < core_count; i++) {
-        renderData[i].start_render_frac = 32;
+        renderData[i].start_render_frac = 16;
         renderData[i].render_smooth = draw_smooth;
         renderData[i].palette = generated_palette;
         pthread_create(&threads[i], NULL, calculateMandelbrotRoutine, &renderData[i]);
@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
         renderData[i].render_smooth = draw_smooth;
         renderData[i].local_buffer = renderBuffer;
         renderData[i].kill_signal = &kill_threads;
-        renderData[i].start_render_frac = 32;
+        renderData[i].start_render_frac = 16;
     }
 
     bool running = true;
