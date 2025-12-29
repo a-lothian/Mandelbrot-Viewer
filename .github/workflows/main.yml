@@ -11,13 +11,9 @@ on:
     branches: [ "main" ]
     tags:
       - "v*"
-  pull_request:
-    branches: [ "main" ]
 
 permissions: 
   contents: write
-
-
 
 jobs:
   build:
@@ -35,19 +31,63 @@ jobs:
         fetch-depth: 0
         ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
 
-    # ensure SDL is setup on all platforms, known stable version
-    - name: Setup SDL
-      uses: libsdl-org/setup-sdl@v1
-      with:
-        install-linux-dependencies: true
-        version: 3-head
+    # Install System Build Tools
 
-    - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+    # Linux
+    - name: Install Dependencies (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential git cmake ninja-build pkg-config \
+        libasound2-dev libpulse-dev libx11-dev libxext-dev libxrandr-dev \
+        libxcursor-dev libxi-dev libxinerama-dev libxxf86vm-dev libxss-dev \
+        libgl1-mesa-dev libwayland-dev libxkbcommon-dev
 
-    - name: Build
+    # MacOS
+    - name: Install Dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: brew install ninja cmake
+
+    # Build SDL3 from source
+    - name: Clone SDL3
+      run: git clone --depth 1 https://github.com/libsdl-org/SDL.git
+
+    # Linux / MacOS
+    - name: Build SDL3 (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: |
+        cmake -S SDL -B sdl_build -DCMAKE_BUILD_TYPE=Release
+        cmake --build sdl_build --config Release --parallel
+        sudo cmake --install sdl_build 
+        # installs to /usr/local/
+
+    # Windows
+    - name: Build SDL3 (Windows)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        cmake -S SDL -B sdl_build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=sdl_install
+        cmake --build sdl_build --config Release --parallel
+        cmake --install sdl_build
+        # installs to ${{ github.workspace }}/sdl_install
+
+
+    # Build Mandelbrot
+    - name: Configure Mandelbrot
+      shell: bash
+      run: |
+        # if Windows, point CMake to the local SDL install
+        if [ "$RUNNER_OS" == "Windows" ]; then
+           cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{ github.workspace }}/sdl_install
+        else
+           cmake -B build -DCMAKE_BUILD_TYPE=Release
+        fi
+
+    - name: Build Mandelbrot
       run: cmake --build build --config Release
-      
+
+
+    # Packaging
     # windows requires both the dll and exe. I zip them together here.
     - name: Create Windows Release Package
       if: matrix.os == 'windows-latest'
