@@ -72,10 +72,25 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        cmake -S SDL -B sdl_build -G "Visual Studio 17 2022" -A x64 -DSDL_INSTALL=ON -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/sdl_install"
+        cmake -S SDL -B sdl_build -G "Visual Studio 17 2022" -A x64 \
+          -DSDL_INSTALL=ON \
+          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/sdl_install"
         cmake --build sdl_build --config Release --parallel
-        cmake --install sdl_build --config Release --prefix "${{ github.workspace }}\\sdl_install"
+        cmake --install sdl_build --config Release --prefix "${{ github.workspace }}/sdl_install"
         # installs to ${{ github.workspace }}/sdl_install
+
+    # Windows logging
+
+    - name: Locate SDL3Config.cmake (Windows)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        echo "Searching for SDL3Config.cmake under sdl_install..."
+        find "${{ github.workspace }}/sdl_install" -name "SDL3Config.cmake" -o -name "sdl3-config.cmake" -print
+        echo "Tree (top levels):"
+        ls -la "${{ github.workspace }}/sdl_install" || true
+        ls -la "${{ github.workspace }}/sdl_install/lib" || true
+        ls -la "${{ github.workspace }}/sdl_install/lib/cmake" || true
 
 
     # Build Mandelbrot
@@ -84,7 +99,7 @@ jobs:
       run: |
         # if Windows, point CMake to the local SDL install
         if [ "$RUNNER_OS" == "Windows" ]; then
-           cmake -B build -DCMAKE_BUILD_TYPE=Release -DSDL3_DIR="${{ github.workspace }}\\sdl_install\\lib\\cmake\\SDL3"
+            -B build -DCMAKE_BUILD_TYPE=Release -DSDL3_DIR="${{ github.workspace }}/sdl_install/lib/cmake/SDL3"
         else
            cmake -B build -DCMAKE_BUILD_TYPE=Release
         fi
@@ -103,7 +118,18 @@ jobs:
         cp build/Release/Mandelbrot.exe Mandelbrot-Windows-x64/
         cp build/Release/SDL3.dll Mandelbrot-Windows-x64/
         cp build/Release/pthreadVC2.dll Mandelbrot-Windows-x64/
-        7z a Mandelbrot-Windows.zip Mandelbrot-Windows-x64/
+
+    # zip result
+    - name: Create Windows Release Package
+      if: matrix.os == 'windows-latest'
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force Mandelbrot-Windows-x64 | Out-Null
+        Copy-Item build/Release/Mandelbrot.exe Mandelbrot-Windows-x64/
+        Copy-Item build/Release/SDL3.dll Mandelbrot-Windows-x64/
+        Copy-Item build/Release/pthreadVC2.dll Mandelbrot-Windows-x64/
+        Compress-Archive -Path Mandelbrot-Windows-x64/* -DestinationPath Mandelbrot-Windows.zip -Force
+
         
     - name: Upload Windows Artifact
       if: matrix.os == 'windows-latest'
