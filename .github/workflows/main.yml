@@ -72,8 +72,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        cmake -S SDL -B sdl_build -G "Visual Studio 17 2022" -A x64 ^
-          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}\\sdl_install"
+        cmake -S SDL -B sdl_build -G "Visual Studio 17 2022" -A x64 -DSDL_INSTALL=ON -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/sdl_install"
         cmake --build sdl_build --config Release --parallel
         cmake --install sdl_build --config Release --prefix "${{ github.workspace }}\\sdl_install"
         # installs to ${{ github.workspace }}/sdl_install
@@ -85,8 +84,7 @@ jobs:
       run: |
         # if Windows, point CMake to the local SDL install
         if [ "$RUNNER_OS" == "Windows" ]; then
-           cmake -B build -DCMAKE_BUILD_TYPE=Release ^
-              -DSDL3_DIR="${{ github.workspace }}\\sdl_install\\lib\\cmake\\SDL3"
+           cmake -B build -DCMAKE_BUILD_TYPE=Release -DSDL3_DIR="${{ github.workspace }}\\sdl_install\\lib\\cmake\\SDL3"
         else
            cmake -B build -DCMAKE_BUILD_TYPE=Release
         fi
