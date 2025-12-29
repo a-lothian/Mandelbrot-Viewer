@@ -40,7 +40,7 @@ jobs:
       uses: libsdl-org/setup-sdl@v1
       with:
         install-linux-dependencies: true
-        version: 3.2.28
+        version: 3-head
 
     - name: Configure CMake
       run: cmake -B build -DCMAKE_BUILD_TYPE=Release
