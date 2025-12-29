@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
     struct viewport* vp = init_viewport(SCRN_WIDTH, SCRN_HEIGHT);
 
     // take a chosen array of colour and generate a 2048 colour gradient from them
-    Uint32* colour_palette = list_palettes[0];
+    const Uint32* colour_palette = list_palettes[0];
     Uint32* generated_palette = generateColourPalette(colour_palette, 8, 2048);
 
     long core_count = get_num_logical_cores();

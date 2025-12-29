@@ -27,7 +27,7 @@ Uint32 lerp_color(Uint32 colour1, Uint32 colour2, float p) {
     return 0xFF000000 | (r << 16) | (g << 8) | b;
 }
 
-Uint32* generateColourPalette(Uint32* colours, int num_colours, int steps) {
+Uint32* generateColourPalette(const Uint32* colours, int num_colours, int steps) {
     Uint32* palette = (Uint32*)malloc(sizeof(Uint32) * steps);
 
     for (int i = 0; i < steps; i++) {
@@ -68,7 +68,7 @@ const Uint32 palette_neon_chaos[8] = {0xFF000000, 0xFFFF00FF, 0xFF000000, 0xFF00
 const Uint32 palette_cmyk[8] = {0xFF000000, 0xFF00FFFF, 0xFF0080FF, 0xFFFF00FF, 0xFFFF0080, 0xFFFFFF00, 0xFF808080, 0xFFFFFFFF};
 const Uint32 palette_halloween[8] = {0xFF000000, 0xFF220044, 0xFF440088, 0xFF6600CC, 0xFF8800FF, 0xFFFF6600, 0xFFFF9900, 0xFFFFFFFF};
 
-const Uint32* list_palettes[12] = {
+const Uint32* const list_palettes[12] = {
     palette_inferno,
     palette_psych,
     palette_rainbow,
@@ -82,7 +82,7 @@ const Uint32* list_palettes[12] = {
     palette_cmyk,
     palette_halloween};
 
-Uint32* cyclePalettes(int* index) {
+const Uint32* cyclePalettes(int* index) {
     *index = (*index + 1) % 12;
-    return (Uint32*)list_palettes[*index];
+    return list_palettes[*index];
 }
