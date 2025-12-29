@@ -27,9 +27,26 @@ target_include_directories(Mandelbrot PRIVATE
 
 # copy the SDL3.dll to the executable folder on windows
 if(WIN32)
+    set(PTHREAD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/pthread4w/x64")
+
+    # Add headers
+    target_include_directories(Mandelbrot PRIVATE "${PTHREAD_DIR}/include")
+
+    # link .lib's
+    target_link_libraries(Mandelbrot PRIVATE "${PTHREAD_DIR}/lib/pthreadVC2.lib")
+
+    # Copy .dll's to build
+    # SDL3 .dll
     add_custom_command(TARGET Mandelbrot POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:SDL3::SDL3>
+        $<TARGET_FILE_DIR:Mandelbrot>
+    )
+
+    # Pthread .dll
+    add_custom_command(TARGET Mandelbrot POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PTHREAD_DIR}/dll/pthreadVC2.dll"
         $<TARGET_FILE_DIR:Mandelbrot>
     )
 endif()

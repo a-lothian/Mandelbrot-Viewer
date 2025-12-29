@@ -4,3 +4,4 @@
 /.vs
 out/
 .DS_Store
+CMakeSettings.json

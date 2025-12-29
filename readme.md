@@ -16,7 +16,7 @@ _A Multithreaded Mandelbrot set viewer written in C using SDL3._
 - 12 Colour palettes
 - Cross-platform (macOS, Linux, Windows)
 - Built and released automatically via GitHub Actions
-- Not written by AI
+- Not written by AI ;)
 
 ## Controls
 
@@ -83,3 +83,15 @@ _A Multithreaded Mandelbrot set viewer written in C using SDL3._
   <img src="assets/demo5.jpg" width="45%" />
   <img src="assets/demo6.jpg" width="45%" />
 </p>
+
+## Third-Party Libraries
+
+* **SDL3 (Simple DirectMedia Layer)**: Used for windowing, input, and graphics.
+    * License: zlib License
+    * Source: https://github.com/libsdl-org/SDL
+    * Copyright (C) 1997-2025 Sam Lantinga
+
+* **pthreads-win32** _(Windows only)_: Used for multithreading support on Windows.
+    * License: Pthreads-win32 License (MIT-style permissive)
+    * Source: https://sourceware.org/pthreads-win32/
+    * Copyright (C) 1998 Ross Johnson

@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <inttypes.h>
+
+#ifdef _WIN32 // predefined in vs2022 stdlib
+#define HAVE_STRUCT_TIMESPEC
+#endif
 #include <pthread.h>
 #include <math.h>
 
@@ -15,14 +19,11 @@
 
 #define PRNT_VP 1
 
-#define SCRN_HEIGHT 800
-#define SCRN_WIDTH 1500
+#define SCRN_HEIGHT 720
+#define SCRN_WIDTH 1280
 
-const int halfHeight = SCRN_HEIGHT / 2;
-const int halfWidth = SCRN_WIDTH / 2;
-
-const int TARGET_FPS = 60;
-const Uint64 TARGET_FRAME_TIME = 1000 / TARGET_FPS;
+#define TARGET_FPS 60
+#define TARGET_FRAME_TIME (1000 / TARGET_FPS)
 
 void drawBuffer(SDL_Renderer* _prenderer, SDL_Texture* screen, Uint32* pixel_buffer, struct mandelbrotRoutineData* renderData, long core_count, pthread_t* threads, bool draw_smooth, Uint32* generated_palette) {
     *renderData[0].kill_signal = true;  // reference by pointer; kills all
