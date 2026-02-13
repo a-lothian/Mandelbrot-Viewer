@@ -99,7 +99,7 @@ jobs:
       shell: bash
       run: |
         if [ "$RUNNER_OS" = "Windows" ]; then
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DSDL3_DIR="${{ github.workspace }}/sdl_install/cmake/SDL3"
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ github.workspace }}/sdl_install"
         else
           cmake -B build -DCMAKE_BUILD_TYPE=Release
         fi
