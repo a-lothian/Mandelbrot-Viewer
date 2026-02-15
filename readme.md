@@ -35,10 +35,47 @@ _A Multithreaded Mandelbrot set viewer written in C using SDL3._
 
 - **CMake** (Version 3.16+)
 - **C Compiler** (GCC, Clang, or MSVC)
-- **SDL3 Development Libraries**:
-  - **Windows:** install via a package manager like `vcpkg`
-  - **macOS:** Install via Homebrew
-  - **Linux:** Install via your package manager (e.g., `sudo apt install libsdl3-dev`) or build from source.
+- **vcpkg** (for managing dependencies)
+- **SDL3** and **pthreads** (installed via vcpkg)
+
+### Install Dependencies
+
+The project uses `vcpkg.json` to manage dependencies. You can either use the manifest or install manually:
+
+#### Using vcpkg manifest (Recommended)
+
+The dependencies are automatically installed using the `vcpkg.json` manifest:
+
+```bash
+vcpkg install --triplet <triplet>
+```
+
+Where `<triplet>` is:
+- **Windows:** `x64-windows-static` (for standalone executable)
+- **Linux:** `x64-linux-release`
+- **macOS:** `arm64-osx-release` (Apple Silicon) or `x64-osx-release` (Intel Mac)
+
+#### Manual installation (Alternative)
+
+**Windows:**
+```bash
+vcpkg install sdl3:x64-windows-static pthreads:x64-windows-static
+```
+
+**macOS (Apple Silicon):**
+```bash
+vcpkg install sdl3:arm64-osx-release
+```
+
+**macOS (Intel):**
+```bash
+vcpkg install sdl3:x64-osx-release
+```
+
+**Linux:**
+```bash
+vcpkg install sdl3:x64-linux-release
+```
 
 ### Build Steps
 
@@ -49,22 +86,51 @@ _A Multithreaded Mandelbrot set viewer written in C using SDL3._
     cd Mandelbrot-Viewer
     ```
 
-2.  **Configure the project:**
+2.  **Install dependencies:**
 
     ```bash
-    cmake -S . -B build
+    vcpkg install --triplet <triplet>
     ```
 
-    _(Note: If CMake cannot find SDL3, you may need to specify the path: `cmake -S . -B build -DSDL3_DIR=/path/to/sdl3`)_
+3.  **Configure the project:**
 
-3.  **Compile:**
+    ##### Windows:
+    ```bash
+    cmake -B build -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake \
+      -DVCPKG_TARGET_TRIPLET=x64-windows-static
+    ```
+
+    ##### Linux:
+    ```bash
+    cmake -B build -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake \
+      -DVCPKG_TARGET_TRIPLET=x64-linux-release
+    ```
+
+    ##### macOS (Apple Silicon):
+    ```bash
+    cmake -B build -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake \
+      -DVCPKG_TARGET_TRIPLET=arm64-osx-release
+    ```
+
+    ##### macOS (Intel):
+    ```bash
+    cmake -B build -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake \
+      -DVCPKG_TARGET_TRIPLET=x64-osx-release
+    ```
+
+4.  **Compile:**
 
     ```bash
     cmake --build build --config Release
     ```
 
-4.  **Run:**
-    - **Linux/macOS:** `./build/Mandelbrot`
+5.  **Run:**
+    - **Linux:** `./build/Mandelbrot`
+    - **macOS:** `./build/Mandelbrot`
     - **Windows:** `.\build\Release\Mandelbrot.exe`
 
 ## Image Showcase
@@ -91,7 +157,7 @@ _A Multithreaded Mandelbrot set viewer written in C using SDL3._
     * Source: https://github.com/libsdl-org/SDL
     * Copyright (C) 1997-2025 Sam Lantinga
 
-* **pthreads-win32** _(Windows only)_: Used for multithreading support on Windows.
-    * License: Pthreads-win32 License (MIT-style permissive)
-    * Source: https://sourceware.org/pthreads-win32/
+* **pthreads4w** _(Windows only)_: Used for multithreading support on Windows.
+    * License: Apache License 2.0
+    * Source: https://sourceforge.net/projects/pthreads4w/
     * Copyright (C) 1998 Ross Johnson

@@ -4,6 +4,7 @@ project(MandelbrotViewer)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED True)
 
+# SDL3 package required for static linking
 find_package(SDL3 REQUIRED CONFIG)
 
 add_executable(Mandelbrot
@@ -14,10 +15,17 @@ add_executable(Mandelbrot
     src/colour_palette.c
 )
 
-target_link_libraries(Mandelbrot PRIVATE SDL3::SDL3)
+target_link_libraries(Mandelbrot PRIVATE SDL3::SDL3-static)
 
-if(UNIX AND NOT APPLE)
-  target_link_libraries(Mandelbrot PRIVATE m)
+if(WIN32)
+    find_package(pthreads REQUIRED CONFIG)
+    target_link_libraries(Mandelbrot PRIVATE PThreads4W::PThreads4W)
+else()
+    find_package(Threads REQUIRED)
+    target_link_libraries(Mandelbrot PRIVATE Threads::Threads)
+    if(NOT APPLE)
+        target_link_libraries(Mandelbrot PRIVATE m)
+    endif()
 endif()
 
 # add include directory explicitly so <SDL3/SDL.h> works everywhere
@@ -25,28 +33,12 @@ target_include_directories(Mandelbrot PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-# copy the SDL3.dll to the executable folder on windows
 if(WIN32)
-    set(PTHREAD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/pthread4w/x64")
-
-    # Add headers
-    target_include_directories(Mandelbrot PRIVATE "${PTHREAD_DIR}/include")
-
-    # link .lib's
-    target_link_libraries(Mandelbrot PRIVATE "${PTHREAD_DIR}/lib/pthreadVC2.lib")
-
-    # Copy .dll's to build
-    # SDL3 .dll
-    add_custom_command(TARGET Mandelbrot POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:SDL3::SDL3>
-        $<TARGET_FILE_DIR:Mandelbrot>
-    )
-
-    # Pthread .dll
-    add_custom_command(TARGET Mandelbrot POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${PTHREAD_DIR}/dll/pthreadVC2.dll"
-        $<TARGET_FILE_DIR:Mandelbrot>
+    # prerequisites for SDL3 compilation
+    target_link_libraries(Mandelbrot PRIVATE
+        winmm
+        imm32
+        version
+        setupapi
     )
 endif()

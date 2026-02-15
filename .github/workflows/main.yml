@@ -8,20 +8,27 @@ on:
         required: true
         type: string
   push:
-    branches: [ "main" ]
     tags:
       - "v*"
 
-permissions: 
+permissions:
   contents: write
+
+env:
+  VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
 
 jobs:
   build:
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     strategy:
-      # Run on Windows, Linux, AND macOS
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            triplet: x64-linux-release
+          - os: windows-latest
+            triplet: x64-windows-static
+          - os: macos-latest
+            triplet: arm64-osx-release
 
     runs-on: ${{ matrix.os }}
 
@@ -31,9 +38,18 @@ jobs:
         fetch-depth: 0
         ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
 
-    # Install System Build Tools
+    - name: Create vcpkg binary cache directory
+      shell: bash
+      run: mkdir -p "${{ github.workspace }}/vcpkg-cache"
 
-    # Linux
+    - name: Cache vcpkg binaries
+      uses: actions/cache@v4
+      with:
+        path: ${{ github.workspace }}/vcpkg-cache
+        key: vcpkg-${{ matrix.triplet }}-${{ hashFiles('vcpkg.json') }}
+        restore-keys: vcpkg-${{ matrix.triplet }}-
+
+    # Install Linux system dependencies needed for vcpkg to build SDL3
     - name: Install Dependencies (Linux)
       if: matrix.os == 'ubuntu-latest'
       run: |
@@ -49,85 +65,70 @@ jobs:
         libdbus-1-dev libibus-1.0-dev libudev-dev fcitx-libs-dev \
         libdecor-0-dev
 
-    # MacOS
     - name: Install Dependencies (macOS)
       if: matrix.os == 'macos-latest'
       run: brew install ninja cmake
 
-    # Build SDL3 from source
-    - name: Clone SDL3
-      run: git clone --depth 1 https://github.com/libsdl-org/SDL.git
-
-    # Linux / MacOS
-    - name: Build SDL3 (Linux/macOS)
-      if: runner.os != 'Windows'
-      run: |
-        cmake -S SDL -B sdl_build -DCMAKE_BUILD_TYPE=Release
-        cmake --build sdl_build --config Release --parallel
-        sudo cmake --install sdl_build 
-        # installs to /usr/local/
-
-    # Windows
-    - name: Build SDL3 (Windows)
-      if: runner.os == 'Windows'
+    # Install vcpkg dependencies using manifest (vcpkg.json)
+    - name: Install vcpkg packages
       shell: bash
-      run: |
-        cmake -S SDL -B sdl_build -G "Visual Studio 17 2022" -A x64 \
-          -DSDL_INSTALL=ON \
-          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/sdl_install"
-        cmake --build sdl_build --config Release --parallel
-        cmake --install sdl_build --config Release --prefix "${{ github.workspace }}/sdl_install"
-        # installs to ${{ github.workspace }}/sdl_install
+      run: vcpkg install --triplet ${{ matrix.triplet }}
 
-    # Windows logging
-
-    - name: Locate SDL3Config.cmake (Windows)
-      if: runner.os == 'Windows'
-      shell: bash
-      run: |
-        echo "Searching for SDL3Config.cmake under sdl_install..."
-        find "${{ github.workspace }}/sdl_install" \( -name "SDL3Config.cmake" -o -name "sdl3-config.cmake" \) -print
-        echo "Tree (top levels):"
-        ls -la "${{ github.workspace }}/sdl_install" || true
-        ls -la "${{ github.workspace }}/sdl_install/lib" || true
-        ls -la "${{ github.workspace }}/sdl_install/cmake" || true
-
-       
     # Build Mandelbrot
-    # if Windows, point CMake to the local SDL install
     - name: Configure Mandelbrot
       shell: bash
       run: |
-        if [ "$RUNNER_OS" = "Windows" ]; then
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ github.workspace }}/sdl_install"
-        else
-          cmake -B build -DCMAKE_BUILD_TYPE=Release
+        generator_flags=""
+        if [ "$RUNNER_OS" != "Windows" ]; then
+          generator_flags="-G Ninja"
         fi
-
+        cmake -B build -DCMAKE_BUILD_TYPE=Release $generator_flags \
+          -DCMAKE_TOOLCHAIN_FILE="${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake" \
+          -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
 
     - name: Build Mandelbrot
       run: cmake --build build --config Release
 
-
-    # Packaging
-    # windows requires both the dll and exe. I zip them together here.
-    - name: Create Windows Release Package
+    - name: Verify Windows Build Output
       if: matrix.os == 'windows-latest'
-      shell: pwsh
+      shell: bash
       run: |
-        New-Item -ItemType Directory -Force Mandelbrot-Windows-x64 | Out-Null
-        Copy-Item build/Release/Mandelbrot.exe Mandelbrot-Windows-x64/
-        Copy-Item build/Release/SDL3.dll Mandelbrot-Windows-x64/
-        Copy-Item build/Release/pthreadVC2.dll Mandelbrot-Windows-x64/
-        Compress-Archive -Path Mandelbrot-Windows-x64/* -DestinationPath Mandelbrot-Windows.zip -Force
+        if [ ! -f "build/Release/Mandelbrot.exe" ]; then
+          echo "ERROR: Windows executable not found at build/Release/Mandelbrot.exe"
+          find build -name "*.exe" -o -name "Mandelbrot*"
+          exit 1
+        fi
+        ls -lh build/Release/Mandelbrot.exe
 
-        
+    - name: Verify Linux Build Output
+      if: matrix.os == 'ubuntu-latest'
+      shell: bash
+      run: |
+        if [ ! -f "build/Mandelbrot" ]; then
+          echo "ERROR: Linux binary not found at build/Mandelbrot"
+          find build -type f -executable
+          exit 1
+        fi
+        ls -lh build/Mandelbrot
+
+    - name: Verify macOS Build Output
+      if: matrix.os == 'macos-latest'
+      shell: bash
+      run: |
+        if [ ! -f "build/Mandelbrot" ]; then
+          echo "ERROR: macOS binary not found at build/Mandelbrot"
+          find build -type f -executable
+          exit 1
+        fi
+        ls -lh build/Mandelbrot
+
+    # Packaging - Windows is now a standalone exe
     - name: Upload Windows Artifact
       if: matrix.os == 'windows-latest'
       uses: actions/upload-artifact@v4
       with:
         name: Mandelbrot-Windows
-        path: Mandelbrot-Windows.zip
+        path: build/Release/Mandelbrot.exe
 
     - name: Upload Linux Artifact
       if: matrix.os == 'ubuntu-latest'
@@ -135,14 +136,14 @@ jobs:
       with:
         name: Mandelbrot-Linux
         path: build/Mandelbrot
-        
+
     - name: Upload macOS Artifact
       if: matrix.os == 'macos-latest'
       uses: actions/upload-artifact@v4
       with:
         name: Mandelbrot-macOS
         path: build/Mandelbrot
-  
+
   release:
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     needs: build
@@ -154,16 +155,38 @@ jobs:
         with:
           path: dist
 
-      - name: Package macOS + Linux
+      - name: Verify all artifacts were downloaded
+        shell: bash
         run: |
+          echo "Artifact directory structure:"
           ls -R dist
-          chmod +x dist/Mandelbrot-Linux/Mandelbrot || true
-          chmod +x dist/Mandelbrot-macOS/Mandelbrot || true
+
+          if [ ! -d "dist/Mandelbrot-Windows" ] || [ ! -f "dist/Mandelbrot-Windows/Mandelbrot.exe" ]; then
+            echo "ERROR: Windows artifact missing"
+            exit 1
+          fi
+          if [ ! -d "dist/Mandelbrot-Linux" ] || [ ! -f "dist/Mandelbrot-Linux/Mandelbrot" ]; then
+            echo "ERROR: Linux artifact missing"
+            exit 1
+          fi
+          if [ ! -d "dist/Mandelbrot-macOS" ] || [ ! -f "dist/Mandelbrot-macOS/Mandelbrot" ]; then
+            echo "ERROR: macOS artifact missing"
+            exit 1
+          fi
+          echo "All artifacts verified successfully"
+
+      - name: Package releases
+        shell: bash
+        run: |
+          chmod +x dist/Mandelbrot-Linux/Mandelbrot
+          chmod +x dist/Mandelbrot-macOS/Mandelbrot
 
           tar -czf Mandelbrot-Linux.tar.gz -C dist/Mandelbrot-Linux Mandelbrot
           tar -czf Mandelbrot-macOS.tar.gz -C dist/Mandelbrot-macOS Mandelbrot
+          zip -j Mandelbrot-Windows.zip dist/Mandelbrot-Windows/Mandelbrot.exe
 
-          cp dist/Mandelbrot-Windows/Mandelbrot-Windows.zip .
+          echo "Package creation complete:"
+          ls -lh Mandelbrot-*.{tar.gz,zip}
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
