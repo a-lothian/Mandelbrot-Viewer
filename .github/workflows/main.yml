@@ -55,6 +55,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential git cmake ninja-build pkg-config \
+        autoconf autoconf-archive automake libtool \
         gnome-desktop-testing \
         libasound2-dev libpulse-dev libaudio-dev libjack-dev libsndio-dev libsamplerate0-dev \
         libusb-1.0-0-dev \
