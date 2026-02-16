@@ -32,7 +32,7 @@ endif()
 if(MSVC)
     target_compile_options(Mandelbrot PRIVATE $<$<CONFIG:Release>:/O2 /fp:fast>)
 else()
-    target_compile_options(Mandelbrot PRIVATE $<$<CONFIG:Release>:-O3 -ffast-math -march=x86-64-v2>)
+    target_compile_options(Mandelbrot PRIVATE $<$<CONFIG:Release>:-O3 -ffast-math>)
 endif()
 
 # add include directory explicitly so <SDL3/SDL.h> works everywhere
