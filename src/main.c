@@ -25,6 +25,17 @@
 #define TARGET_FPS 60      // change if supported!
 #define TARGET_FRAME_TIME (1000 / TARGET_FPS)
 
+void cleanup(struct mandelbrotRoutineData* renderData, pthread_t* threads, Uint32* renderBuffer, struct viewport* vp, SDL_Texture* scrnTexture, SDL_Renderer* prenderer, SDL_Window* pwindow) {
+    free(renderData);
+    free(threads);
+    free(renderBuffer);
+    free(vp);
+    SDL_DestroyTexture(scrnTexture);
+    SDL_DestroyRenderer(prenderer);
+    SDL_DestroyWindow(pwindow);
+    SDL_Quit();
+}
+
 void drawBuffer(SDL_Renderer* _prenderer, SDL_Texture* screen, Uint32* pixel_buffer, struct mandelbrotRoutineData* renderData, long core_count, pthread_t* threads, bool draw_smooth, Uint32* generated_palette) {
     *renderData[0].kill_signal = true;  // reference by pointer; kills all
 
@@ -68,23 +79,29 @@ int main(int argc, char* argv[]) {
     Uint32* renderBuffer = malloc(sizeof(Uint32) * SCRN_HEIGHT * SCRN_WIDTH);
     Uint64 frameStart, frameTime;
 
-    if (!prenderer) {
-        fprintf(stderr, "Renderer Failed to init");
-        SDL_DestroyWindow(pwindow);
-        SDL_DestroyRenderer(prenderer);
+    if (!pwindow || !prenderer || !scrnTexture || !renderBuffer) {
+        fprintf(stderr, "Failed to initialise SDL resources\n");
+        cleanup(NULL, NULL, renderBuffer, NULL, scrnTexture, prenderer, pwindow);
         return 1;
     }
 
     struct viewport* vp = init_viewport(SCRN_WIDTH, SCRN_HEIGHT);
 
-    // take a chosen array of colour and generate a 2048 colour gradient from them
+    // take a chosen array of colour and generate a palette gradient from them
     const Uint32* colour_palette = list_palettes[0];
-    Uint32* generated_palette = generateColourPalette(colour_palette, 8, 2048);
+    static Uint32 generated_palette[PALETTE_SIZE];
+    generateColourPalette(colour_palette, 8, generated_palette, PALETTE_SIZE);
 
     long core_count = get_num_logical_cores();
     pthread_t* threads = calloc(core_count, sizeof(pthread_t));
-    volatile bool kill_threads = false;
 
+    if (!vp || !threads) {
+        fprintf(stderr, "Failed to allocate memory\n");
+        cleanup(NULL, threads, renderBuffer, vp, scrnTexture, prenderer, pwindow);
+        return 1;
+    }
+
+    volatile bool kill_threads = false;
     int rows_per_thread = SCRN_HEIGHT / core_count;
 
     // render options
@@ -94,6 +111,11 @@ int main(int argc, char* argv[]) {
     int palette_index = 0;
 
     struct mandelbrotRoutineData* renderData = malloc(core_count * sizeof(struct mandelbrotRoutineData));
+    if (!renderData) {
+        fprintf(stderr, "Failed to allocate render data\n");
+        cleanup(NULL, threads, renderBuffer, vp, scrnTexture, prenderer, pwindow);
+        return 1;
+    }
 
     // create threads and job data
     for (int i = 0; i < core_count; i++) {
@@ -102,7 +124,7 @@ int main(int argc, char* argv[]) {
         renderData[i].scrn_width = SCRN_WIDTH;
         renderData[i].vp = vp;
         renderData[i].palette = generated_palette;
-        renderData[i].palette_size = 2048;
+        renderData[i].palette_size = PALETTE_SIZE;
         renderData[i].render_smooth = draw_smooth;
         renderData[i].local_buffer = renderBuffer;
         renderData[i].kill_signal = &kill_threads;
@@ -143,7 +165,7 @@ int main(int argc, char* argv[]) {
                 // use M to change colour palette
                 case SDLK_M:
                     colour_palette = cyclePalettes(&palette_index);
-                    generated_palette = generateColourPalette(colour_palette, 8, 2048);
+                    generateColourPalette(colour_palette, 8, generated_palette, PALETTE_SIZE);
                     break;
 
                 case SDLK_ESCAPE:
@@ -181,8 +203,13 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    SDL_DestroyWindow(pwindow);
-    SDL_DestroyRenderer(prenderer);
+    // stop all render threads before freeing shared resources
+    kill_threads = true;
+    for (int i = 0; i < core_count; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    cleanup(renderData, threads, renderBuffer, vp, scrnTexture, prenderer, pwindow);
 
     return 0;
 }

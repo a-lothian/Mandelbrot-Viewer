@@ -14,6 +14,7 @@ double mapRange(double x, double inMin, double inMax, double outMin, double outM
 
 struct viewport* init_viewport(int width, int height) {
     struct viewport* vp = malloc(sizeof(struct viewport));
+    if (!vp) return NULL;
 
     vp->screen_width = width;
     vp->screen_height = height;

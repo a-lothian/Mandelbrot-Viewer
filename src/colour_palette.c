@@ -1,5 +1,4 @@
 #include <SDL3/SDL_stdinc.h>  // for Uint32
-#include <stdlib.h>
 
 // linear interpolation inspired by https://stackoverflow.com/questions/21835739/smooth-color-transition-algorithm
 Uint32 lerp_color(Uint32 colour1, Uint32 colour2, float p) {
@@ -27,9 +26,7 @@ Uint32 lerp_color(Uint32 colour1, Uint32 colour2, float p) {
     return 0xFF000000 | (r << 16) | (g << 8) | b;
 }
 
-Uint32* generateColourPalette(const Uint32* colours, int num_colours, int steps) {
-    Uint32* palette = (Uint32*)malloc(sizeof(Uint32) * steps);
-
+void generateColourPalette(const Uint32* colours, int num_colours, Uint32* out, int steps) {
     for (int i = 0; i < steps; i++) {
         float p = (float)i / (float)(steps - 1);
 
@@ -49,10 +46,8 @@ Uint32* generateColourPalette(const Uint32* colours, int num_colours, int steps)
         // find distance between colour1 & colour2
         float t_local = position - idx1;
 
-        palette[i] = lerp_color(colours[idx1], colours[idx2], t_local);
+        out[i] = lerp_color(colours[idx1], colours[idx2], t_local);
     }
-
-    return palette;
 }
 
 const Uint32 palette_inferno[8] = {0xFF000000, 0xFF07002B, 0xFF2A005E, 0xFF7C0000, 0xFFFF0000, 0xFFFF8000, 0xFFFFFF00, 0xFFFFFFFF};
