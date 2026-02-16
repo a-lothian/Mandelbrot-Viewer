@@ -28,6 +28,13 @@ else()
     endif()
 endif()
 
+# compiler optimisations for Release builds
+if(MSVC)
+    target_compile_options(Mandelbrot PRIVATE $<$<CONFIG:Release>:/O2 /fp:fast>)
+else()
+    target_compile_options(Mandelbrot PRIVATE $<$<CONFIG:Release>:-O3 -ffast-math -march=native>)
+endif()
+
 # add include directory explicitly so <SDL3/SDL.h> works everywhere
 target_include_directories(Mandelbrot PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include

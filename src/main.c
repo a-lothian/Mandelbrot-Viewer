@@ -22,7 +22,7 @@
 #define SCRN_HEIGHT 720
 #define SCRN_WIDTH 1280
 
-#define TARGET_FPS 60
+#define TARGET_FPS 60      // change if supported!
 #define TARGET_FRAME_TIME (1000 / TARGET_FPS)
 
 void drawBuffer(SDL_Renderer* _prenderer, SDL_Texture* screen, Uint32* pixel_buffer, struct mandelbrotRoutineData* renderData, long core_count, pthread_t* threads, bool draw_smooth, Uint32* generated_palette) {
