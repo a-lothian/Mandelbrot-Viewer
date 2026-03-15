@@ -1,4 +1,5 @@
 #include "mandelbrot.h"
+
 #include "inputHandler.h"
 
 #include <math.h>
@@ -83,6 +84,31 @@ int fast_map_range(int value, int in_max, int out_max)
     return (value * out_max) / in_max;
 }
 
+// SMOOTH CYCLIC RENDERING
+static inline Uint32 cyclicPalette(struct RenderJob* data, int iterations, int palette_scale)
+{
+    int colorIndex = (int)(iterations * palette_scale);
+
+    Uint32 colour;
+    if (iterations == data->vp->iterations) {  // check inside of mandelbrot
+        colour = data->palette[0];
+    } else if (colorIndex >= data->palette_size) {
+        colour = data->palette[0];
+    } else {
+        int frequency = 10;
+        int col_index = iterations * frequency;
+
+        // wrap around the palette
+        int index = col_index % data->palette_size;
+
+        if (index < 0)
+            index = 0;
+
+        colour = data->palette[index];
+    }
+    return colour;
+}
+
 void* calculateMandelbrotRoutine(void* arg)
 {
     struct RenderJob* data = (struct RenderJob*)arg;
@@ -111,63 +137,27 @@ void* calculateMandelbrotRoutine(void* arg)
                 return NULL;
             }
 
-            Uint32* out = (Uint32*)row;
+            Uint32* out = (Uint32*)row;  // point to start of current row
 
             // worldspace coordinates
             double x0 = world_left;
             double y0 = world_top + (double)y * zoom;
 
-            if (data->render_smooth) {
-                // SMOOTH CYCLIC RENDERING
-                for (int x = 0; x < data->scrn_width; x += data->start_render_frac) {
-                    int iterations = calculateMandelbrot(x0, y0, data->vp->iterations);
+            for (int x = 0; x < data->scrn_width; x += data->start_render_frac) {
+                int iterations = calculateMandelbrot(x0, y0, data->vp->iterations);
 
-                    int colorIndex = (int)(iterations * palette_scale);
-
-                    Uint32 colour;
-                    if (iterations == data->vp->iterations) {  // check inside of mandelbrot
-                        colour = data->palette[0];
-                    } else if (colorIndex >= data->palette_size) {
-                        colour = data->palette[0];
-                    } else {
-                        int frequency = 10;
-                        int col_index = iterations * frequency;
-
-                        // wrap around the palette
-                        int index = col_index % data->palette_size;
-
-                        if (index < 0)
-                            index = 0;
-
-                        colour = data->palette[index];
+                Uint32 colour = data->render_smooth
+                    ? cyclicPalette(data, iterations, palette_scale)
+                    : data->palette[fast_map_range(iterations, data->vp->iterations, data->palette_size - 1)];
+                
+                // copy to neighbours based on current render_frac
+                for (int k = 0; k < data->start_render_frac; k++) {
+                    if ((x + k) < data->scrn_width) {
+                        out[x + k] = colour;
                     }
-
-                    // coloring (0xFFRRGGBB format for ARGB8888) + write to buffer
-                    // copy to neighboring cells depending on render fraction
-                    for (int k = 0; k < data->start_render_frac; k++) {
-                        if ((x + k) < data->scrn_width) {  // check if within buffer
-                            out[x + k] = colour;
-                        }
-                    }
-
-                    x0 += zoom * data->start_render_frac;  // update worldspace x for next loop, with respect to render_frac
                 }
 
-            } else {
-                // FAST RENDERING
-                for (int x = 0; x < data->scrn_width; x += data->start_render_frac) {
-                    int iterations = calculateMandelbrot(x0, y0, data->vp->iterations);
-
-                    // coloring (0xFFRRGGBB format for ARGB8888) + write to buffer
-                    // copy to neighboring cells depending on render fraction
-                    for (int k = 0; k < data->start_render_frac; k++) {
-                        if ((x + k) < data->scrn_width) {  // check if within buffer
-                            out[x + k] = data->palette[fast_map_range(iterations, data->vp->iterations, data->palette_size - 1)];
-                        }
-                    }
-
-                    x0 += zoom * data->start_render_frac;  // update worldspace x for next loop, with respect to render_frac
-                }
+                x0 += zoom * data->start_render_frac;  // update worldspace x for next loop, with respect to render_frac
             }
 
             for (int p = 1; p < data->start_render_frac; p++) {

@@ -16,7 +16,7 @@ _A Multithreaded Mandelbrot set viewer written in C using SDL3._
 - 12 Colour palettes
 - Cross-platform (macOS, Linux, Windows)
 - Built and released automatically via GitHub Actions
-- Not written by AI ;)
+- 100% Human code, not written by AI ;)
 
 ## Controls
 
@@ -51,7 +51,7 @@ vcpkg install --triplet <triplet>
 ```
 
 Where `<triplet>` is:
-- **Windows:** `x64-windows-static` (for standalone executable)
+- **Windows:** `x64-windows-static-md` (for standalone executable)
 - **Linux:** `x64-linux-release`
 - **macOS:** `arm64-osx-release` (Apple Silicon) or `x64-osx-release` (Intel Mac)
 
@@ -59,7 +59,7 @@ Where `<triplet>` is:
 
 **Windows:**
 ```bash
-vcpkg install sdl3:x64-windows-static pthreads:x64-windows-static
+vcpkg install sdl3:x64-windows-static-md pthreads:x64-windows-static-md
 ```
 
 **macOS (Apple Silicon):**
@@ -98,7 +98,7 @@ vcpkg install sdl3:x64-linux-release
     ```bash
     cmake -B build -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake \
-      -DVCPKG_TARGET_TRIPLET=x64-windows-static
+      -DVCPKG_TARGET_TRIPLET=x64-windows-static-md
     ```
 
     ##### Linux:
