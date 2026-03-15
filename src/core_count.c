@@ -1,6 +1,7 @@
 #include "core_count.h"
 
-long get_num_logical_cores() {
+long get_num_logical_cores()
+{
     long num_cores = 1;
 
 #if defined(_WIN32) || defined(_WIN64)

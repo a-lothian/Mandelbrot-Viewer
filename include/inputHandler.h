@@ -1,8 +1,8 @@
 #ifndef MANDELBROT_VIEW
 #define MANDELBROT_VIEW
 
-#include <stdbool.h>
 #include <SDL3/SDL.h>
+#include <stdbool.h>
 
 struct viewport {
     int screen_width;
@@ -21,6 +21,7 @@ struct viewport {
     double zoom;
 
     int iterations;
+    double iteration_multiplier;
 };
 
 struct viewport* init_viewport(int width, int height);

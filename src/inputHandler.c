@@ -1,10 +1,12 @@
 #include "inputHandler.h"
+
 #include <SDL3/SDL_stdinc.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <math.h>
 
-double mapRange(double x, double inMin, double inMax, double outMin, double outMax) {
+double mapRange(double x, double inMin, double inMax, double outMin, double outMax)
+{
     // clamping
     x = fmin(inMax, x);
     x = fmax(inMin, x);
@@ -12,9 +14,11 @@ double mapRange(double x, double inMin, double inMax, double outMin, double outM
     return (outMin + (x - inMin) * (outMax - outMin) / (inMax - inMin));
 }
 
-struct viewport* init_viewport(int width, int height) {
+struct viewport* init_viewport(int width, int height)
+{
     struct viewport* vp = malloc(sizeof(struct viewport));
-    if (!vp) return NULL;
+    if (!vp)
+        return NULL;
 
     vp->screen_width = width;
     vp->screen_height = height;
@@ -32,12 +36,14 @@ struct viewport* init_viewport(int width, int height) {
     vp->zoom = 0.0032;
 
     vp->iterations = 64;
+    vp->iteration_multiplier = 1.0;
 
     return vp;
 }
 
 // true when screen redraw is required
-bool handle_mouse_events(SDL_Event* event, struct viewport* state) {
+bool handle_mouse_events(SDL_Event* event, struct viewport* state)
+{
     bool redraw_required = false;
 
     switch (event->type) {

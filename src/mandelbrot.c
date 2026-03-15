@@ -1,11 +1,12 @@
 #include "mandelbrot.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-
 #include "inputHandler.h"
 
-static inline int isKnownInside(double x0, double y0) {
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+static inline int isKnownInside(double x0, double y0)
+{
     // test 1. If x0, y0 is within distance of 1/4 from point (-1,0)
     // it is guaranteed to be inside
     double x1 = x0 + 1.0;
@@ -26,7 +27,8 @@ static inline int isKnownInside(double x0, double y0) {
 //
 // Optimization 1, isKnownInside(): if x,y is within known regions, it will not escape.
 // Optimization 2, checkInterval: if the distance between x,y and x,y from many steps ago is tiny, it will not escape.
-int calculateMandelbrot(double x0, double y0, int max_iterations) {
+int calculateMandelbrot(double x0, double y0, int max_iterations)
+{
     if (isKnownInside(x0, y0))
         return max_iterations;
 
@@ -75,13 +77,15 @@ int calculateMandelbrot(double x0, double y0, int max_iterations) {
 }
 
 // assume min is 0 for both inputs
-int fast_map_range(int value, int in_max, int out_max) {
+int fast_map_range(int value, int in_max, int out_max)
+{
     value = value >= in_max ? 0 : value;  // clamp max
     return (value * out_max) / in_max;
 }
 
-void* calculateMandelbrotRoutine(void* arg) {
-    struct mandelbrotRoutineData* data = (struct mandelbrotRoutineData*)arg;
+void* calculateMandelbrotRoutine(void* arg)
+{
+    struct RenderJob* data = (struct RenderJob*)arg;
     int pitch = sizeof(Uint32) * data->vp->screen_width;
 
     int halfWidth = data->vp->screen_width / 2;
@@ -97,7 +101,7 @@ void* calculateMandelbrotRoutine(void* arg) {
 
     // render fraction halves; 8 -> 4 -> 2 -> 1 -> return
     while (data->start_render_frac >= 1) {
-        row = (Uint8*)data->local_buffer + (data->start_y * pitch);
+        row = (Uint8*)data->buffer + (data->start_y * pitch);
 
         // draw onto screen
         // render factor 8: render every 8th pixel, copy to other pixels, then half render factor + repeat until 1.
@@ -169,8 +173,8 @@ void* calculateMandelbrotRoutine(void* arg) {
             for (int p = 1; p < data->start_render_frac; p++) {
                 int target_y = y + p;
                 if (target_y < data->end_y) {
-                    Uint8* src = (Uint8*)data->local_buffer + (y * pitch);
-                    Uint8* dst = (Uint8*)data->local_buffer + (target_y * pitch);
+                    Uint8* src = (Uint8*)data->buffer + (y * pitch);
+                    Uint8* dst = (Uint8*)data->buffer + (target_y * pitch);
                     memcpy(dst, src, pitch);
                 }
             }

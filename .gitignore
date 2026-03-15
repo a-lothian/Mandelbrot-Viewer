@@ -3,5 +3,6 @@
 /build
 /.vs
 out/
+vcpkg_installed/
 .DS_Store
 CMakeSettings.json
