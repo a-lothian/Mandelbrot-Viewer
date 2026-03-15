@@ -9,6 +9,7 @@ find_package(SDL3 REQUIRED CONFIG)
 
 add_executable(Mandelbrot
     src/main.c
+    src/benchmark.c
     src/mandelbrot.c
     src/inputHandler.c
     src/core_count.c

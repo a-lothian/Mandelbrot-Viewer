@@ -2,10 +2,12 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef _WIN32  // predefined in vs2022 stdlib
 #define HAVE_STRUCT_TIMESPEC
 #endif
+#include "benchmark.h"
 #include "colour_palette.h"
 #include "core_count.h"
 #include "inputHandler.h"
@@ -190,6 +192,7 @@ bool process_events(struct ThreadPool* tp, struct PaletteState* ps, struct viewp
     }
 
     if (redraw) {
+        //printf("x:%.9lf y:%.9lf zoom:%.25lf iterations:%d\n", vp->current_offset_x, vp->current_offset_y, vp->zoom, vp->iterations);
         int it = (int)(calculateIterations(vp->zoom) * vp->iteration_multiplier);
         vp->iterations = (it < 1) ? 1 : it;
         drawBuffer(rc, tp, ps);
@@ -210,11 +213,32 @@ void shutdown_app(struct RenderContext* rc, struct ThreadPool* tp, struct viewpo
 
 int main(int argc, char* argv[])
 {
+    // check for benchmark call
+    struct BenchmarkOpts bench_opts = { .threads = 0, .smooth = false };
+    bool do_benchmark = false;
+
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--benchmark") == 0) {
+            do_benchmark = true;
+        } else if (strcmp(argv[i], "--smooth") == 0) {
+            bench_opts.smooth = true;
+        } else if (strcmp(argv[i], "--fast") == 0) {
+            bench_opts.smooth = false;
+        } else if (strcmp(argv[i], "--threads") == 0 && i + 1 < argc) {
+            bench_opts.threads = atoi(argv[++i]);
+        }
+    }
+
+    if (do_benchmark) {
+        run_benchmark(bench_opts);
+        return 0;
+    }
+
     printf("Mandelbrot Viewer in C by Alex Lothian\n"
            " Click + Drag to Navigate. Scroll to Zoom.\n"
            " < : Half Maximum Iterations\n"
            " > : Double Maximum Iterations\n"
-           " / : Toggle Cyclic Shading Mode\n\n\n");
+           " / : Toggle Cyclic Shading Mode\n\n");
 
     struct RenderContext rc = {0};
     struct ThreadPool tp = {0};
