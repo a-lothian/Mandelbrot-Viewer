@@ -5,8 +5,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-double mapRange(double x, double inMin, double inMax, double outMin, double outMax)
-{
+double mapRange(double x, double inMin, double inMax, double outMin, double outMax) {
     // clamping
     x = fmin(inMax, x);
     x = fmax(inMin, x);
@@ -14,8 +13,7 @@ double mapRange(double x, double inMin, double inMax, double outMin, double outM
     return (outMin + (x - inMin) * (outMax - outMin) / (inMax - inMin));
 }
 
-struct viewport* init_viewport(int width, int height)
-{
+struct viewport* init_viewport(int width, int height) {
     struct viewport* vp = malloc(sizeof(struct viewport));
     if (!vp)
         return NULL;
@@ -41,34 +39,50 @@ struct viewport* init_viewport(int width, int height)
     return vp;
 }
 
+// zooms towards the mouse position by factor amount
+void ZoomOnMouse(struct viewport* vp, double zoom_factor) {
+    float mx, my;
+    SDL_GetMouseState(&mx, &my);
+
+    double mouse_screen_x = (double)mx - (vp->screen_width * 0.5);
+    double mouse_screen_y = (double)my - (vp->screen_height * 0.5);
+
+    double world_x = vp->current_offset_x + mouse_screen_x * vp->zoom;
+    double world_y = vp->current_offset_y + mouse_screen_y * vp->zoom;
+
+    vp->zoom *= zoom_factor;
+
+    vp->current_offset_x = world_x - mouse_screen_x * vp->zoom;
+    vp->current_offset_y = world_y - mouse_screen_y * vp->zoom;
+}
+
 // true when screen redraw is required
-bool handle_mouse_events(SDL_Event* event, struct viewport* state)
-{
+bool handle_mouse_events(SDL_Event* event, struct viewport* vp) {
     bool redraw_required = false;
 
     switch (event->type) {
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
         if (event->button.button == SDL_BUTTON_LEFT) {
-            state->is_dragging = true;
+            vp->is_dragging = true;
 
-            state->drag_start_x = event->button.x;
-            state->drag_start_y = event->button.y;
+            vp->drag_start_x = event->button.x;
+            vp->drag_start_y = event->button.y;
 
-            state->initial_offset_x = state->current_offset_x;
-            state->initial_offset_y = state->current_offset_y;
+            vp->initial_offset_x = vp->current_offset_x;
+            vp->initial_offset_y = vp->current_offset_y;
         }
         break;
 
     case SDL_EVENT_MOUSE_MOTION:
-        if (state->is_dragging) {
+        if (vp->is_dragging) {
             int current_x = event->motion.x;
             int current_y = event->motion.y;
 
-            int dx = current_x - state->drag_start_x;
-            int dy = current_y - state->drag_start_y;
+            int dx = current_x - vp->drag_start_x;
+            int dy = current_y - vp->drag_start_y;
 
-            state->current_offset_x = state->initial_offset_x - (double)dx * state->zoom;
-            state->current_offset_y = state->initial_offset_y - (double)dy * state->zoom;
+            vp->current_offset_x = vp->initial_offset_x - (double)dx * vp->zoom;
+            vp->current_offset_y = vp->initial_offset_y - (double)dy * vp->zoom;
 
             redraw_required = true;
         }
@@ -76,20 +90,11 @@ bool handle_mouse_events(SDL_Event* event, struct viewport* state)
 
     case SDL_EVENT_MOUSE_BUTTON_UP:
         if (event->button.button == SDL_BUTTON_LEFT) {
-            state->is_dragging = false;
+            vp->is_dragging = false;
         }
         break;
 
     case SDL_EVENT_MOUSE_WHEEL:
-        float mx, my;
-        SDL_GetMouseState(&mx, &my);
-
-        double mouse_screen_x = (double)mx - (state->screen_width * 0.5);
-        double mouse_screen_y = (double)my - (state->screen_height * 0.5);
-
-        double world_x = state->current_offset_x + mouse_screen_x * state->zoom;
-        double world_y = state->current_offset_y + mouse_screen_y * state->zoom;
-
         double zoom_intensity = 0.25;
         double factor = 1.0;
 
@@ -99,10 +104,7 @@ bool handle_mouse_events(SDL_Event* event, struct viewport* state)
             factor = 1.0 + (-event->wheel.y * zoom_intensity);
         }
 
-        state->zoom *= factor;
-
-        state->current_offset_x = world_x - mouse_screen_x * state->zoom;
-        state->current_offset_y = world_y - mouse_screen_y * state->zoom;
+        ZoomOnMouse(vp, factor);
 
         redraw_required = true;
         break;

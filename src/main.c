@@ -25,8 +25,7 @@
 #define TARGET_FPS 60  // change if supported!
 #define TARGET_FRAME_TIME (1000 / TARGET_FPS)
 
-void cleanup(struct RenderContext* rc, struct ThreadPool* tp, struct viewport* vp)
-{
+void cleanup(struct RenderContext* rc, struct ThreadPool* tp, struct viewport* vp) {
     free(tp->jobs);
     free(tp->threads);
     free(rc->buffer);
@@ -37,8 +36,7 @@ void cleanup(struct RenderContext* rc, struct ThreadPool* tp, struct viewport* v
     SDL_Quit();
 }
 
-int calculateIterations(double zoom)
-{
+int calculateIterations(double zoom) {
     if (zoom <= 0.0)
         return 5000;
 
@@ -54,8 +52,7 @@ int calculateIterations(double zoom)
     return iter;
 }
 
-void drawBuffer(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteState* ps)
-{
+void drawBuffer(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteState* ps) {
     tp->kill = true;
 
     for (int i = 0; i < tp->count; i++) {
@@ -66,15 +63,14 @@ void drawBuffer(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteS
     SDL_RenderClear(rc->renderer);
 
     for (int i = 0; i < tp->count; i++) {
-        tp->jobs[i].start_render_frac = 16;
+        tp->jobs[i].start_render_frac = 8;
         tp->jobs[i].render_smooth = ps->smooth;
         tp->jobs[i].palette = ps->generated;
         pthread_create(&tp->threads[i], NULL, calculateMandelbrotRoutine, &tp->jobs[i]);
     }
 }
 
-int init_app(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteState* ps, struct viewport** vp_out)
-{
+int init_app(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteState* ps, struct viewport** vp_out) {
     SDL_Init(SDL_INIT_VIDEO);
 
     rc->width = SCRN_WIDTH;
@@ -86,7 +82,7 @@ int init_app(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteStat
 
     if (!rc->window || !rc->renderer || !rc->texture || !rc->buffer) {
         fprintf(stderr, "Failed to initialise SDL resources\n");
-        // partial cleanup — vp not yet allocated
+        // vp not yet allocated
         free(rc->buffer);
         SDL_DestroyTexture(rc->texture);
         SDL_DestroyRenderer(rc->renderer);
@@ -135,7 +131,7 @@ int init_app(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteStat
         tp->jobs[i].render_smooth = ps->smooth;
         tp->jobs[i].buffer = rc->buffer;
         tp->jobs[i].kill_signal = &tp->kill;
-        tp->jobs[i].start_render_frac = 16;
+        tp->jobs[i].start_render_frac = 2;
     }
 
     *vp_out = vp;
@@ -143,8 +139,7 @@ int init_app(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteStat
 }
 
 // returns false when the application should quit
-bool process_events(struct ThreadPool* tp, struct PaletteState* ps, struct viewport* vp, struct RenderContext* rc)
-{
+bool process_events(struct ThreadPool* tp, struct PaletteState* ps, struct viewport* vp, struct RenderContext* rc) {
     SDL_Event event;
     bool redraw = false;
 
@@ -177,6 +172,13 @@ bool process_events(struct ThreadPool* tp, struct PaletteState* ps, struct viewp
                 generateColourPalette(ps->current, 8, ps->generated, PALETTE_SIZE);
                 break;
 
+            case SDLK_RETURN:
+                ZoomOnMouse(vp, 0.95);
+                break;
+            case SDLK_APOSTROPHE:
+                ZoomOnMouse(vp, 1.15);
+                break;
+
             case SDLK_ESCAPE:
                 return false;
 
@@ -192,7 +194,7 @@ bool process_events(struct ThreadPool* tp, struct PaletteState* ps, struct viewp
     }
 
     if (redraw) {
-        //printf("x:%.9lf y:%.9lf zoom:%.25lf iterations:%d\n", vp->current_offset_x, vp->current_offset_y, vp->zoom, vp->iterations);
+        // printf("x:%.9lf y:%.9lf zoom:%.25lf iterations:%d\n", vp->current_offset_x, vp->current_offset_y, vp->zoom, vp->iterations);
         int it = (int)(calculateIterations(vp->zoom) * vp->iteration_multiplier);
         vp->iterations = (it < 1) ? 1 : it;
         drawBuffer(rc, tp, ps);
@@ -201,8 +203,7 @@ bool process_events(struct ThreadPool* tp, struct PaletteState* ps, struct viewp
     return true;
 }
 
-void shutdown_app(struct RenderContext* rc, struct ThreadPool* tp, struct viewport* vp)
-{
+void shutdown_app(struct RenderContext* rc, struct ThreadPool* tp, struct viewport* vp) {
     // stop all render threads before freeing shared resources
     tp->kill = true;
     for (int i = 0; i < tp->count; i++) {
@@ -211,10 +212,9 @@ void shutdown_app(struct RenderContext* rc, struct ThreadPool* tp, struct viewpo
     cleanup(rc, tp, vp);
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     // check for benchmark call
-    struct BenchmarkOpts bench_opts = { .threads = 0, .smooth = false };
+    struct BenchmarkOpts bench_opts = {.threads = 0, .smooth = false};
     bool do_benchmark = false;
 
     for (int i = 1; i < argc; i++) {
@@ -234,11 +234,12 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    printf("Mandelbrot Viewer in C by Alex Lothian\n"
-           " Click + Drag to Navigate. Scroll to Zoom.\n"
-           " < : Half Maximum Iterations\n"
-           " > : Double Maximum Iterations\n"
-           " / : Toggle Cyclic Shading Mode\n\n");
+    printf(
+        "Mandelbrot Viewer in C by Alex Lothian\n"
+        " Click + Drag to Navigate. Scroll to Zoom.\n"
+        " < : Half Maximum Iterations\n"
+        " > : Double Maximum Iterations\n"
+        " / : Toggle Cyclic Shading Mode\n\n");
 
     struct RenderContext rc = {0};
     struct ThreadPool tp = {0};

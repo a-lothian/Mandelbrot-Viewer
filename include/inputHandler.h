@@ -25,6 +25,7 @@ struct viewport {
 };
 
 struct viewport* init_viewport(int width, int height);
+void ZoomOnMouse(struct viewport* vp, double zoom_factor);
 bool handle_mouse_events(SDL_Event* event, struct viewport* state);
 
 #endif

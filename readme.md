@@ -3,16 +3,14 @@
 _A Multithreaded Mandelbrot set viewer written in C using SDL3._
 
 <p align="center">
-  <img src="assets/demo.jpg" width="45%" />
+  <img src="assets/zoom_demo.gif" width="35%" />
+  <img src="assets/render_demo.gif" width="35%">
 </p>
 
 ## Features
 
 - Mouse controls: Dragging, Zooming
-- Multi-threaded rendering
-- Progressive rendering
-- Dynamic resolution
-- Colour rendering
+- Multi-threaded progressive rendering
 - 12 Colour palettes
 - Cross-platform (macOS, Linux, Windows)
 - Built and released automatically via GitHub Actions
@@ -51,6 +49,7 @@ vcpkg install --triplet <triplet>
 ```
 
 Where `<triplet>` is:
+
 - **Windows:** `x64-windows-static-md` (for standalone executable)
 - **Linux:** `x64-linux-release`
 - **macOS:** `arm64-osx-release` (Apple Silicon) or `x64-osx-release` (Intel Mac)
@@ -58,21 +57,25 @@ Where `<triplet>` is:
 #### Manual installation (Alternative)
 
 **Windows:**
+
 ```bash
 vcpkg install sdl3:x64-windows-static-md pthreads:x64-windows-static-md
 ```
 
 **macOS (Apple Silicon):**
+
 ```bash
 vcpkg install sdl3:arm64-osx-release
 ```
 
 **macOS (Intel):**
+
 ```bash
 vcpkg install sdl3:x64-osx-release
 ```
 
 **Linux:**
+
 ```bash
 vcpkg install sdl3:x64-linux-release
 ```
@@ -95,6 +98,7 @@ vcpkg install sdl3:x64-linux-release
 3.  **Configure the project:**
 
     ##### Windows:
+
     ```bash
     cmake -B build -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake \
@@ -102,6 +106,7 @@ vcpkg install sdl3:x64-linux-release
     ```
 
     ##### Linux:
+
     ```bash
     cmake -B build -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake \
@@ -109,6 +114,7 @@ vcpkg install sdl3:x64-linux-release
     ```
 
     ##### macOS (Apple Silicon):
+
     ```bash
     cmake -B build -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake \
@@ -116,6 +122,7 @@ vcpkg install sdl3:x64-linux-release
     ```
 
     ##### macOS (Intel):
+
     ```bash
     cmake -B build -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake \
@@ -152,12 +159,13 @@ vcpkg install sdl3:x64-linux-release
 
 ## Third-Party Libraries
 
-* **SDL3 (Simple DirectMedia Layer)**: Used for windowing, input, and graphics.
-    * License: zlib License
-    * Source: https://github.com/libsdl-org/SDL
-    * Copyright (C) 1997-2025 Sam Lantinga
+- **SDL3 (Simple DirectMedia Layer)**: Used for windowing, input, and graphics.
 
-* **pthreads4w** _(Windows only)_: Used for multithreading support on Windows.
-    * License: Apache License 2.0
-    * Source: https://sourceforge.net/projects/pthreads4w/
-    * Copyright (C) 1998 Ross Johnson
+  - License: zlib License
+  - Source: https://github.com/libsdl-org/SDL
+  - Copyright (C) 1997-2025 Sam Lantinga
+
+- **pthreads4w** _(Windows only)_: Used for multithreading support on Windows.
+  - License: Apache License 2.0
+  - Source: https://sourceforge.net/projects/pthreads4w/
+  - Copyright (C) 1998 Ross Johnson

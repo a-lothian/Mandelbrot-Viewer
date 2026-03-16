@@ -5,7 +5,7 @@
 #include <pthread.h>
 #include <stdbool.h>
 
-struct viewport;  // forward decl — avoids circular include with inputHandler.h
+struct viewport;
 
 struct RenderJob {
     int start_y, end_y, scrn_width;
