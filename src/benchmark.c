@@ -34,14 +34,13 @@ static const struct BenchScene scenes[] = {
 #define NUM_SCENES ((int)(sizeof(scenes) / sizeof(scenes[0])))
 
 static double bench_scene(const struct BenchScene* scene, struct BenchmarkOpts opts, struct ThreadPool* tp, struct viewport* vp, Uint32* buffer,
-                          Uint32* palette)
-{
+                          Uint32* palette) {
     vp->current_offset_x = scene->offset_x;
     vp->current_offset_y = scene->offset_y;
     vp->zoom = scene->zoom;
     vp->iterations = scene->iterations;
 
-    volatile bool kill = false;
+    _Atomic bool kill = false;
     int rows_per_thread = SCRN_HEIGHT / tp->count;
 
     for (int i = 0; i < tp->count; i++) {
@@ -72,8 +71,7 @@ static double bench_scene(const struct BenchScene* scene, struct BenchmarkOpts o
     return (t1.tv_sec - t0.tv_sec) * 1000.0 + (t1.tv_nsec - t0.tv_nsec) / 1e6;
 }
 
-void run_benchmark(struct BenchmarkOpts opts)
-{
+void run_benchmark(struct BenchmarkOpts opts) {
     long thread_count = (opts.threads > 0) ? opts.threads : get_num_logical_cores();
 
     Uint32* buffer = malloc(sizeof(Uint32) * SCRN_WIDTH * SCRN_HEIGHT);

@@ -25,6 +25,8 @@
 #define TARGET_FPS 60  // change if supported!
 #define TARGET_FRAME_TIME (1000 / TARGET_FPS)
 
+#define MAX_ITERATIONS 100000
+
 void cleanup(struct RenderContext* rc, struct ThreadPool* tp, struct viewport* vp) {
     free(tp->jobs);
     free(tp->threads);
@@ -48,18 +50,23 @@ int calculateIterations(double zoom) {
     if (iter < 32) {
         return 32;
     }
-
+    iter = iter > MAX_ITERATIONS ? MAX_ITERATIONS : iter;
     return iter;
 }
 
 void drawBuffer(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteState* ps) {
-    tp->kill = true;
+    // rejoin existing threads
+    if (tp->threads[0] != NULL) {
+        tp->kill = true;
 
-    for (int i = 0; i < tp->count; i++) {
-        pthread_join(tp->threads[i], NULL);
+        for (int i = 0; i < tp->count; i++) {
+            pthread_join(tp->threads[i], NULL);
+        }
+
+        tp->kill = false;
     }
 
-    tp->kill = false;
+    // begin new render
     SDL_RenderClear(rc->renderer);
 
     for (int i = 0; i < tp->count; i++) {
@@ -71,16 +78,30 @@ void drawBuffer(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteS
 }
 
 int init_app(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteState* ps, struct viewport** vp_out) {
-    SDL_Init(SDL_INIT_VIDEO);
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
+        fprintf(stderr, "Failed to initialise SDL\n");
+        return 1;
+    }
 
     rc->width = SCRN_WIDTH;
     rc->height = SCRN_HEIGHT;
     rc->window = SDL_CreateWindow("Mandelbrot Set", SCRN_WIDTH, SCRN_HEIGHT, SDL_WINDOW_HIGH_PIXEL_DENSITY);
+    if (!rc->window) {
+        fprintf(stderr, "Failed to initialise SDL resources\n");
+        SDL_Quit();
+        return 1;
+    }
     rc->renderer = SDL_CreateRenderer(rc->window, NULL);
+    if (!rc->renderer) {
+        fprintf(stderr, "Failed to initialise SDL resources\n");
+        SDL_DestroyWindow(rc->window);
+        SDL_Quit();
+        return 1;
+    }
     rc->texture = SDL_CreateTexture(rc->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCRN_WIDTH, SCRN_HEIGHT);
     rc->buffer = malloc(sizeof(Uint32) * SCRN_HEIGHT * SCRN_WIDTH);
 
-    if (!rc->window || !rc->renderer || !rc->texture || !rc->buffer) {
+    if (!rc->texture || !rc->buffer) {
         fprintf(stderr, "Failed to initialise SDL resources\n");
         // vp not yet allocated
         free(rc->buffer);
@@ -97,7 +118,6 @@ int init_app(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteStat
 
     if (!vp || !tp->threads) {
         fprintf(stderr, "Failed to allocate memory\n");
-        free(vp);
         cleanup(rc, tp, vp);
         return 1;
     }

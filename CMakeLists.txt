@@ -16,7 +16,11 @@ add_executable(Mandelbrot
     src/colour_palette.c
 )
 
-target_link_libraries(Mandelbrot PRIVATE SDL3::SDL3-static)
+if (WIN32)
+    target_link_libraries(Mandelbrot PRIVATE SDL3::SDL3-static)
+else()
+    target_link_libraries(Mandelbrot PRIVATE SDL3::SDL3)
+endif()
 
 if(WIN32)
     find_package(pthreads REQUIRED CONFIG)

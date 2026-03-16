@@ -6,8 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static inline int isKnownInside(double x0, double y0)
-{
+static inline int isKnownInside(double x0, double y0) {
     // test 1. If x0, y0 is within distance of 1/4 from point (-1,0)
     // it is guaranteed to be inside
     double x1 = x0 + 1.0;
@@ -28,8 +27,7 @@ static inline int isKnownInside(double x0, double y0)
 //
 // Optimization 1, isKnownInside(): if x,y is within known regions, it will not escape.
 // Optimization 2, checkInterval: if the distance between x,y and x,y from many steps ago is tiny, it will not escape.
-int calculateMandelbrot(double x0, double y0, int max_iterations)
-{
+int calculateMandelbrot(double x0, double y0, int max_iterations) {
     if (isKnownInside(x0, y0))
         return max_iterations;
 
@@ -78,15 +76,13 @@ int calculateMandelbrot(double x0, double y0, int max_iterations)
 }
 
 // assume min is 0 for both inputs
-int fast_map_range(int value, int in_max, int out_max)
-{
+int fast_map_range(int value, int in_max, int out_max) {
     value = value >= in_max ? 0 : value;  // clamp max
     return (value * out_max) / in_max;
 }
 
 // SMOOTH CYCLIC RENDERING
-static inline Uint32 cyclicPalette(struct RenderJob* data, int iterations, int palette_scale)
-{
+static inline Uint32 cyclicPalette(struct RenderJob* data, int iterations, int palette_scale) {
     int colorIndex = (int)(iterations * palette_scale);
 
     Uint32 colour;
@@ -109,8 +105,7 @@ static inline Uint32 cyclicPalette(struct RenderJob* data, int iterations, int p
     return colour;
 }
 
-void* calculateMandelbrotRoutine(void* arg)
-{
+void* calculateMandelbrotRoutine(void* arg) {
     struct RenderJob* data = (struct RenderJob*)arg;
     int pitch = sizeof(Uint32) * data->vp->screen_width;
 
@@ -146,10 +141,11 @@ void* calculateMandelbrotRoutine(void* arg)
             for (int x = 0; x < data->scrn_width; x += data->start_render_frac) {
                 int iterations = calculateMandelbrot(x0, y0, data->vp->iterations);
 
+                // map iterations to colour data
                 Uint32 colour = data->render_smooth
-                    ? cyclicPalette(data, iterations, palette_scale)
-                    : data->palette[fast_map_range(iterations, data->vp->iterations, data->palette_size - 1)];
-                
+                                    ? cyclicPalette(data, iterations, palette_scale)
+                                    : data->palette[fast_map_range(iterations, data->vp->iterations, data->palette_size - 1)];
+
                 // copy to neighbours based on current render_frac
                 for (int k = 0; k < data->start_render_frac; k++) {
                     if ((x + k) < data->scrn_width) {
@@ -175,4 +171,5 @@ void* calculateMandelbrotRoutine(void* arg)
         }
         data->start_render_frac /= 2;
     }
+    return NULL;
 }

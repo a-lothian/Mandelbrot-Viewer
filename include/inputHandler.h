@@ -9,8 +9,8 @@ struct viewport {
     int screen_height;
 
     bool is_dragging;
-    int drag_start_x;
-    int drag_start_y;
+    float drag_start_x;
+    float drag_start_y;
 
     double current_offset_x;
     double current_offset_y;

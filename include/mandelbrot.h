@@ -13,7 +13,7 @@ struct RenderJob {
     Uint32* palette;
     int palette_size;
     Uint32* buffer;
-    volatile bool* kill_signal;
+    _Atomic bool* kill_signal;
     int start_render_frac;
     bool render_smooth;
 };
@@ -22,7 +22,7 @@ struct ThreadPool {
     pthread_t* threads;
     struct RenderJob* jobs;
     long count;
-    volatile bool kill;
+    _Atomic bool kill;
 };
 
 int calculateMandelbrot(double x0, double y0, int iterations);

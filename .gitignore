@@ -4,5 +4,6 @@
 /.vs
 out/
 vcpkg_installed/
+.cache/
 .DS_Store
 CMakeSettings.json

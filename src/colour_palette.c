@@ -1,8 +1,8 @@
 #include <SDL3/SDL_stdinc.h>  // for Uint32
+#include "colour_palette.h"
 
 // linear interpolation inspired by https://stackoverflow.com/questions/21835739/smooth-color-transition-algorithm
-Uint32 lerp_color(Uint32 colour1, Uint32 colour2, float p)
-{
+Uint32 lerp_color(Uint32 colour1, Uint32 colour2, float p) {
     // Clamp p
     if (p < 0.0f)
         p = 0.0f;
@@ -27,8 +27,7 @@ Uint32 lerp_color(Uint32 colour1, Uint32 colour2, float p)
     return 0xFF000000 | (r << 16) | (g << 8) | b;
 }
 
-void generateColourPalette(const Uint32* colours, int num_colours, Uint32* out, int steps)
-{
+void generateColourPalette(const Uint32* colours, int num_colours, Uint32* out, int steps) {
     for (int i = 0; i < steps; i++) {
         float p = (float)i / (float)(steps - 1);
 
@@ -65,12 +64,11 @@ const Uint32 palette_neon_chaos[8] = {0xFF000000, 0xFFFF00FF, 0xFF000000, 0xFF00
 const Uint32 palette_cmyk[8] = {0xFF000000, 0xFF00FFFF, 0xFF0080FF, 0xFFFF00FF, 0xFFFF0080, 0xFFFFFF00, 0xFF808080, 0xFFFFFFFF};
 const Uint32 palette_halloween[8] = {0xFF000000, 0xFF220044, 0xFF440088, 0xFF6600CC, 0xFF8800FF, 0xFFFF6600, 0xFFFF9900, 0xFFFFFFFF};
 
-const Uint32* const list_palettes[12] = {palette_inferno,       palette_psych,      palette_rainbow,  palette_vaporwave,
-                                         palette_stripey,       palette_fire_ice,   palette_cga_high, palette_alien_goo,
-                                         palette_midnight_gold, palette_neon_chaos, palette_cmyk,     palette_halloween};
+const Uint32* list_palettes[NUM_PALETTES] = {palette_inferno, palette_psych, palette_rainbow, palette_vaporwave,
+                                             palette_stripey, palette_fire_ice, palette_cga_high, palette_alien_goo,
+                                             palette_midnight_gold, palette_neon_chaos, palette_cmyk, palette_halloween};
 
-const Uint32* cyclePalettes(int* index)
-{
-    *index = (*index + 1) % 12;
+const Uint32* cyclePalettes(int* index) {
+    *index = (*index + 1) % NUM_PALETTES;
     return list_palettes[*index];
 }

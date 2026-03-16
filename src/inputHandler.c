@@ -5,14 +5,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-double mapRange(double x, double inMin, double inMax, double outMin, double outMax) {
-    // clamping
-    x = fmin(inMax, x);
-    x = fmax(inMin, x);
-
-    return (outMin + (x - inMin) * (outMax - outMin) / (inMax - inMin));
-}
-
 struct viewport* init_viewport(int width, int height) {
     struct viewport* vp = malloc(sizeof(struct viewport));
     if (!vp)
@@ -61,7 +53,7 @@ bool handle_mouse_events(SDL_Event* event, struct viewport* vp) {
     bool redraw_required = false;
 
     switch (event->type) {
-    case SDL_EVENT_MOUSE_BUTTON_DOWN:
+    case SDL_EVENT_MOUSE_BUTTON_DOWN: {
         if (event->button.button == SDL_BUTTON_LEFT) {
             vp->is_dragging = true;
 
@@ -72,8 +64,9 @@ bool handle_mouse_events(SDL_Event* event, struct viewport* vp) {
             vp->initial_offset_y = vp->current_offset_y;
         }
         break;
+    }
 
-    case SDL_EVENT_MOUSE_MOTION:
+    case SDL_EVENT_MOUSE_MOTION: {
         if (vp->is_dragging) {
             int current_x = event->motion.x;
             int current_y = event->motion.y;
@@ -87,14 +80,16 @@ bool handle_mouse_events(SDL_Event* event, struct viewport* vp) {
             redraw_required = true;
         }
         break;
+    }
 
-    case SDL_EVENT_MOUSE_BUTTON_UP:
+    case SDL_EVENT_MOUSE_BUTTON_UP: {
         if (event->button.button == SDL_BUTTON_LEFT) {
             vp->is_dragging = false;
         }
         break;
+    }
 
-    case SDL_EVENT_MOUSE_WHEEL:
+    case SDL_EVENT_MOUSE_WHEEL: {
         double zoom_intensity = 0.25;
         double factor = 1.0;
 
@@ -108,6 +103,7 @@ bool handle_mouse_events(SDL_Event* event, struct viewport* vp) {
 
         redraw_required = true;
         break;
+    }
     }
     return redraw_required;
 }

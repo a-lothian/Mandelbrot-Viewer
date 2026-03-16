@@ -5,8 +5,9 @@
 #include <stdbool.h>
 
 #define PALETTE_SIZE 2048
+#define NUM_PALETTES 12
 
-extern const Uint32* list_palettes[12];
+const Uint32* list_palettes[NUM_PALETTES];
 
 struct PaletteState {
     Uint32 generated[PALETTE_SIZE];
