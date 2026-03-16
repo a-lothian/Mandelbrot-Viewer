@@ -22,7 +22,7 @@
 #define SCRN_HEIGHT 720
 #define SCRN_WIDTH 1280
 
-#define TARGET_FPS 60  // change if supported!
+#define TARGET_FPS 60
 #define TARGET_FRAME_TIME (1000 / TARGET_FPS)
 
 #define MAX_ITERATIONS 100000
@@ -77,7 +77,7 @@ void drawBuffer(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteS
     }
 }
 
-int init_app(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteState* ps, struct viewport** vp_out) {
+int init_app(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteState* ps, struct viewport** vp_out, int arg_thread_num) {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fprintf(stderr, "Failed to initialise SDL\n");
         return 1;
@@ -113,7 +113,9 @@ int init_app(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteStat
     }
 
     struct viewport* vp = init_viewport(SCRN_WIDTH, SCRN_HEIGHT);
-    tp->count = get_num_logical_cores();
+
+    // allow --threads arg to override
+    tp->count = arg_thread_num == 0 ? get_num_logical_cores() : arg_thread_num;
     tp->threads = calloc(tp->count, sizeof(pthread_t));
 
     if (!vp || !tp->threads) {
@@ -214,7 +216,6 @@ bool process_events(struct ThreadPool* tp, struct PaletteState* ps, struct viewp
     }
 
     if (redraw) {
-        // printf("x:%.9lf y:%.9lf zoom:%.25lf iterations:%d\n", vp->current_offset_x, vp->current_offset_y, vp->zoom, vp->iterations);
         int it = (int)(calculateIterations(vp->zoom) * vp->iteration_multiplier);
         vp->iterations = (it < 1) ? 1 : it;
         drawBuffer(rc, tp, ps);
@@ -236,6 +237,7 @@ int main(int argc, char* argv[]) {
     // check for benchmark call
     struct BenchmarkOpts bench_opts = {.threads = 0, .smooth = false};
     bool do_benchmark = false;
+    int thread_count_override = 0;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--benchmark") == 0) {
@@ -246,6 +248,7 @@ int main(int argc, char* argv[]) {
             bench_opts.smooth = false;
         } else if (strcmp(argv[i], "--threads") == 0 && i + 1 < argc) {
             bench_opts.threads = atoi(argv[++i]);
+            thread_count_override = bench_opts.threads;
         }
     }
 
@@ -266,7 +269,7 @@ int main(int argc, char* argv[]) {
     struct PaletteState ps = {0};
     struct viewport* vp = NULL;
 
-    if (init_app(&rc, &tp, &ps, &vp) != 0) {
+    if (init_app(&rc, &tp, &ps, &vp, thread_count_override) != 0) {
         return 1;
     }
 
