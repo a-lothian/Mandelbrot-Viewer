@@ -170,7 +170,7 @@ int init_app(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteStat
         tp->jobs[i].render_smooth = ps->smooth;
         tp->jobs[i].buffer = rc->buffer;
         tp->jobs[i].kill_signal = &tp->kill;
-        tp->jobs[i].start_render_frac = 2;
+        tp->jobs[i].start_render_frac = 8;
     }
 
     *vp_out = vp;
@@ -252,7 +252,7 @@ void shutdown_app(struct RenderContext* rc, struct ThreadPool* tp, struct viewpo
 
 int main(int argc, char* argv[]) {
     // check for benchmark call
-    struct BenchmarkOpts bench_opts = {.threads = 0, .smooth = false, .scalar = false};
+    struct BenchmarkOpts bench_opts = {.threads = 0, .smooth = false, .scalar = false, .sweep = false};
     bool do_benchmark = false;
     int thread_count_override = 0;
 
@@ -265,6 +265,8 @@ int main(int argc, char* argv[]) {
             bench_opts.smooth = false;
         } else if (strcmp(argv[i], "--scalar") == 0) {
             bench_opts.scalar = true;
+        } else if (strcmp(argv[i], "--sweep") == 0) {
+            bench_opts.sweep = true;
         } else if (strcmp(argv[i], "--threads") == 0 && i + 1 < argc) {
             bench_opts.threads = atoi(argv[++i]);
             thread_count_override = bench_opts.threads;
@@ -272,7 +274,10 @@ int main(int argc, char* argv[]) {
     }
 
     if (do_benchmark) {
-        run_benchmark(bench_opts);
+        if (bench_opts.sweep)
+            run_sweep(bench_opts);
+        else
+            run_benchmark(bench_opts);
         return 0;
     }
 

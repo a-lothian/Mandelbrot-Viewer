@@ -7,7 +7,6 @@
 #include "core_count.h"
 #include "inputHandler.h"
 #include "mandelbrot.h"
-#include "simd_handler.h"
 
 #include <pthread.h>
 #include <stdio.h>
@@ -54,7 +53,7 @@ static double bench_scene(const struct BenchScene* scene, struct BenchmarkOpts o
         tp->jobs[i].render_smooth = opts.smooth;
         tp->jobs[i].buffer = buffer;
         tp->jobs[i].kill_signal = &kill;
-        tp->jobs[i].start_render_frac = 1;  // single pass render
+        tp->jobs[i].start_render_frac = 1;
         tp->jobs[i].use_simd = !opts.scalar;
     }
 
@@ -73,42 +72,27 @@ static double bench_scene(const struct BenchScene* scene, struct BenchmarkOpts o
     return (t1.tv_sec - t0.tv_sec) * 1000.0 + (t1.tv_nsec - t0.tv_nsec) / 1e6;
 }
 
-void run_benchmark(struct BenchmarkOpts opts) {
-    long thread_count = (opts.threads > 0) ? opts.threads : get_num_logical_cores();
-
-    Uint32* buffer = malloc(sizeof(Uint32) * SCRN_WIDTH * SCRN_HEIGHT);
-    struct viewport* vp = init_viewport(SCRN_WIDTH, SCRN_HEIGHT);
+static double run_all_scenes(struct BenchmarkOpts opts, long thread_count,
+                             Uint32* buffer, struct viewport* vp, Uint32* palette) {
     pthread_t* threads = calloc(thread_count, sizeof(pthread_t));
     struct RenderJob* jobs = malloc(thread_count * sizeof(struct RenderJob));
 
-    if (!buffer || !vp || !threads || !jobs) {
-        fprintf(stderr, "benchmark: allocation failed\n");
-        free(buffer);
-        free(vp);
+    if (!threads || !jobs) {
         free(threads);
         free(jobs);
-        return;
+        return -1.0;
     }
 
     for (int i = 0; i < thread_count; i++) {
         jobs[i].iteration_out = malloc(SCRN_WIDTH * sizeof(int));
         if (!jobs[i].iteration_out) {
-            fprintf(stderr, "benchmark: iteration_out allocation failed\n");
-
-            for (int j = 0; j < i; j++) {
+            for (int j = 0; j < i; j++)
                 free(jobs[j].iteration_out);
-            }
-
-            free(buffer);
-            free(vp);
             free(threads);
             free(jobs);
-            return;
+            return -1.0;
         }
     }
-
-    Uint32 palette[PALETTE_SIZE];
-    generateColourPalette(list_palettes[0], 8, palette, PALETTE_SIZE);
 
     struct ThreadPool tp = {
         .threads = threads,
@@ -117,11 +101,74 @@ void run_benchmark(struct BenchmarkOpts opts) {
         .kill = false,
     };
 
+    double total_ms = 0.0;
+    for (int i = 0; i < NUM_SCENES; i++) {
+        total_ms += bench_scene(&scenes[i], opts, &tp, vp, buffer, palette);
+    }
+
+    for (int i = 0; i < thread_count; i++)
+        free(jobs[i].iteration_out);
+    free(threads);
+    free(jobs);
+
+    return total_ms;
+}
+
+void run_benchmark(struct BenchmarkOpts opts) {
+    long thread_count = (opts.threads > 0) ? opts.threads : get_num_logical_cores();
+
+    Uint32* buffer = malloc(sizeof(Uint32) * SCRN_WIDTH * SCRN_HEIGHT);
+    struct viewport* vp = init_viewport(SCRN_WIDTH, SCRN_HEIGHT);
+
+    if (!buffer || !vp) {
+        fprintf(stderr, "benchmark: allocation failed\n");
+        free(buffer);
+        free(vp);
+        return;
+    }
+
+    Uint32 palette[PALETTE_SIZE];
+    generateColourPalette(list_palettes[0], 8, palette, PALETTE_SIZE);
+
     printf("\nMandelbrot Benchmark\n");
     printf("Threads: %ld   Mode: %s\n", thread_count, opts.smooth ? "smooth" : "fast");
     printf("----------------------------------------------------\n");
     printf("%-26s %10s  %12s\n", "Scene", "Time (ms)", "Avg. iter/s (Millions)");
     printf("----------------------------------------------------\n");
+
+    // Need per-scene timings for the detailed table, so allocate the pool here.
+    pthread_t* threads = calloc(thread_count, sizeof(pthread_t));
+    struct RenderJob* jobs = malloc(thread_count * sizeof(struct RenderJob));
+
+    if (!threads || !jobs) {
+        fprintf(stderr, "benchmark: allocation failed\n");
+        free(threads);
+        free(jobs);
+        free(buffer);
+        free(vp);
+        return;
+    }
+
+    for (int i = 0; i < thread_count; i++) {
+        jobs[i].iteration_out = malloc(SCRN_WIDTH * sizeof(int));
+        if (!jobs[i].iteration_out) {
+            fprintf(stderr, "benchmark: iteration_out allocation failed\n");
+            for (int j = 0; j < i; j++)
+                free(jobs[j].iteration_out);
+            free(threads);
+            free(jobs);
+            free(buffer);
+            free(vp);
+            return;
+        }
+    }
+
+    struct ThreadPool tp = {
+        .threads = threads,
+        .jobs = jobs,
+        .count = thread_count,
+        .kill = false,
+    };
 
     double total_ms = 0.0;
     double total_iters = 0.0;
@@ -144,8 +191,47 @@ void run_benchmark(struct BenchmarkOpts opts) {
 
     for (int i = 0; i < thread_count; i++)
         free(jobs[i].iteration_out);
-    free(buffer);
-    free(vp);
     free(threads);
     free(jobs);
+    free(buffer);
+    free(vp);
+}
+
+void run_sweep(struct BenchmarkOpts opts) {
+    long max_threads = (opts.threads > 0) ? opts.threads : get_num_logical_cores();
+
+    Uint32* buffer = malloc(sizeof(Uint32) * SCRN_WIDTH * SCRN_HEIGHT);
+    struct viewport* vp = init_viewport(SCRN_WIDTH, SCRN_HEIGHT);
+
+    if (!buffer || !vp) {
+        fprintf(stderr, "benchmark: allocation failed\n");
+        free(buffer);
+        free(vp);
+        return;
+    }
+
+    Uint32 palette[PALETTE_SIZE];
+    generateColourPalette(list_palettes[0], 8, palette, PALETTE_SIZE);
+
+    printf("\nMandelbrot Thread Sweep  (1-%ld threads, %s mode)\n",
+           max_threads, opts.smooth ? "smooth" : "fast");
+    printf("------------------------------------------\n");
+    printf("%-10s %12s  %10s\n", "Threads", "Total (ms)", "Speedup");
+    printf("------------------------------------------\n");
+
+    double baseline_ms = -1.0;
+    for (long t = 1; t <= max_threads; t++) {
+        double total_ms = run_all_scenes(opts, t, buffer, vp, palette);
+        if (total_ms < 0.0) {
+            fprintf(stderr, "benchmark: allocation failed for %ld threads\n", t);
+            break;
+        }
+        if (baseline_ms < 0.0) baseline_ms = total_ms;
+        printf("%-10ld %12.1f  %9.2fx\n", t, total_ms, baseline_ms / total_ms);
+    }
+
+    printf("------------------------------------------\n\n");
+
+    free(buffer);
+    free(vp);
 }
