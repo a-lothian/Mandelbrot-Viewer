@@ -23,7 +23,7 @@ static HWY_INLINE bool isKnownInside(double cx, double cy) {
     return q * (q + x) <= 0.25 * cy * cy;
 }
 
-void SimdRow(double x0_start, double y0, double zoom, int max_iterations, int* out_iterations, int pixel_count) {
+void SimdRow(double x0_start, double y0, double zoom, int max_iterations, int* out_iterations, int pixel_count, bool no_optimisations) {
     const hn::ScalableTag<double> d;  // uses widest SIMD register availible for doubles, to allow highest level of parallel
     const int N = hn::Lanes(d);
 
@@ -57,26 +57,30 @@ void SimdRow(double x0_start, double y0, double zoom, int max_iterations, int* o
         auto cx_vec = hn::Add(hn::Set(d, x0_start + px * zoom),
                               hn::Mul(vSequence, vStep));
 
-        // early escape/known inside optimisations
-        // bulb check
-        auto x1 = hn::Add(cx_vec, vOne);
-        auto cy2 = hn::Set(d, y0 * y0);
-        auto bulb = hn::Le(hn::Add(hn::Mul(x1, x1), cy2), hn::Set(d, 0.0625));
+        const auto vZero = hn::Zero(d);
+        auto escaped = hn::Lt(vZero, vZero);  // all-false mask (0 < 0 is never true)
 
-        // cardioid check
-        auto xm = hn::Sub(cx_vec, hn::Set(d, 0.25));
-        auto q = hn::Add(hn::Mul(xm, xm), cy2);
-        auto cardiod = hn::Le(hn::Mul(q, hn::Add(q, xm)),
-                              hn::Mul(hn::Set(d, 0.25), cy2));
+        if (!no_optimisations) {
+            // bulb check
+            auto x1 = hn::Add(cx_vec, vOne);
+            auto cy2 = hn::Set(d, y0 * y0);
+            auto bulb = hn::Le(hn::Add(hn::Mul(x1, x1), cy2), hn::Set(d, 0.0625));
 
-        auto escaped = hn::Or(bulb, cardiod);
+            // cardioid check
+            auto xm = hn::Sub(cx_vec, hn::Set(d, 0.25));
+            auto q = hn::Add(hn::Mul(xm, xm), cy2);
+            auto cardiod = hn::Le(hn::Mul(q, hn::Add(q, xm)),
+                                  hn::Mul(hn::Set(d, 0.25), cy2));
+
+            escaped = hn::Or(bulb, cardiod);
+        }
 
         auto escaped_iter = vMax;
         auto x_vec = hn::Zero(d);
         auto y_vec = hn::Zero(d);
 
-        // stop iterating if all lanes have escaped
-        if (hn::AllFalse(d, hn::AndNot(escaped, all_lanes))) {
+        // stop iterating if all lanes have escaped (only possible when optimisations on)
+        if (!no_optimisations && hn::AllFalse(d, hn::AndNot(escaped, all_lanes))) {
             hn::Store(escaped_iter, d, result_arr);
             for (int i = 0; i < N; i++) {
                 out_iterations[px + i] = (int)result_arr[i];
@@ -135,7 +139,7 @@ void SimdRow(double x0_start, double y0, double zoom, int max_iterations, int* o
     // remaining pixels in row completed with scalar function
     for (; px < pixel_count; px++) {
         double cx = x0_start + px * zoom;
-        out_iterations[px] = calculateMandelbrot(cx, y0, max_iterations);
+        out_iterations[px] = calculateMandelbrotOpts(cx, y0, max_iterations, no_optimisations);
     }
 }
 
@@ -149,8 +153,8 @@ HWY_AFTER_NAMESPACE();
 namespace mandelbrot_hwy {
 HWY_EXPORT(SimdRow);
 
-void CallSimdRow(double x0_start, double y0, double zoom_step, int max_iterations, int* out_iterations, int pixel_count) {
-    HWY_DYNAMIC_DISPATCH(SimdRow)(x0_start, y0, zoom_step, max_iterations, out_iterations, pixel_count);
+void CallSimdRow(double x0_start, double y0, double zoom_step, int max_iterations, int* out_iterations, int pixel_count, bool no_optimisations) {
+    HWY_DYNAMIC_DISPATCH(SimdRow)(x0_start, y0, zoom_step, max_iterations, out_iterations, pixel_count, no_optimisations);
 }
 }
 
@@ -170,8 +174,9 @@ extern "C" void mandelbrot_simd_row(
     double zoom_step,
     int max_iterations,
     int* out_iterations,
-    int pixel_count) {
-    mandelbrot_hwy::CallSimdRow(x0_start, y0, zoom_step, max_iterations, out_iterations, pixel_count);
+    int pixel_count,
+    bool no_optimisations) {
+    mandelbrot_hwy::CallSimdRow(x0_start, y0, zoom_step, max_iterations, out_iterations, pixel_count, no_optimisations);
 }
 
 #endif

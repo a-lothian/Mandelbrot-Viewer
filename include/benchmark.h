@@ -7,6 +7,7 @@ struct BenchmarkOpts {
     bool smooth;
     bool scalar;
     bool sweep;
+    bool no_optimisations;
 };
 
 void run_benchmark(struct BenchmarkOpts opts);

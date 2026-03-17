@@ -22,6 +22,7 @@ struct RenderJob {
     bool render_smooth;
     bool use_simd;
     int* iteration_out;
+    bool no_optimisations;
 };
 
 struct ThreadPool {
@@ -32,6 +33,7 @@ struct ThreadPool {
 };
 
 int calculateMandelbrot(double x0, double y0, int iterations);
+int calculateMandelbrotOpts(double x0, double y0, int iterations, bool no_optimisations);
 void* calculateMandelbrotRoutine(void* arg);
 
 #ifdef __cplusplus

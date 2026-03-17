@@ -29,7 +29,11 @@ static inline int isKnownInside(double x0, double y0) {
 // Optimization 1, isKnownInside(): if x,y is within known regions, it will not escape.
 // Optimization 2, checkInterval: if the distance between x,y and x,y from many steps ago is tiny, it will not escape.
 int calculateMandelbrot(double x0, double y0, int max_iterations) {
-    if (isKnownInside(x0, y0))
+    return calculateMandelbrotOpts(x0, y0, max_iterations, false);
+}
+
+int calculateMandelbrotOpts(double x0, double y0, int max_iterations, bool no_optimisations) {
+    if (!no_optimisations && isKnownInside(x0, y0))
         return max_iterations;
 
     double x = 0.0;
@@ -144,7 +148,7 @@ void* calculateMandelbrotRoutine(void* arg) {
                 double zoom_step = zoom * frac;
                 int pixel_count = (data->scrn_width + frac - 1) / frac;
 
-                mandelbrot_simd_row(x0, y0, zoom_step, data->vp->iterations, data->iteration_out, pixel_count);
+                mandelbrot_simd_row(x0, y0, zoom_step, data->vp->iterations, data->iteration_out, pixel_count, data->no_optimisations);
                 int px = 0;
                 for (int x = 0; x < data->scrn_width; x += frac, px++) {
                     int iterations = data->iteration_out[px];
@@ -161,7 +165,7 @@ void* calculateMandelbrotRoutine(void* arg) {
                 }
             } else {
                 for (int x = 0; x < data->scrn_width; x += data->start_render_frac) {
-                    int iterations = calculateMandelbrot(x0, y0, data->vp->iterations);
+                    int iterations = calculateMandelbrotOpts(x0, y0, data->vp->iterations, data->no_optimisations);
 
                     // map iterations to colour data
                     Uint32 colour = data->render_smooth

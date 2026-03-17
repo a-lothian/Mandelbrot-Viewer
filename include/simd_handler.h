@@ -15,7 +15,8 @@ void mandelbrot_simd_row(
     double zoom_step,
     int max_iterations,
     int* out_iterations,
-    int pixel_count);
+    int pixel_count,
+    bool no_optimisations);
 
 void mandelbrot_simd_print_targets(void);
 

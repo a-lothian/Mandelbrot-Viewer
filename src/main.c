@@ -252,7 +252,7 @@ void shutdown_app(struct RenderContext* rc, struct ThreadPool* tp, struct viewpo
 
 int main(int argc, char* argv[]) {
     // check for benchmark call
-    struct BenchmarkOpts bench_opts = {.threads = 0, .smooth = false, .scalar = false, .sweep = false};
+    struct BenchmarkOpts bench_opts = {.threads = 0, .smooth = false, .scalar = false, .sweep = false, .no_optimisations = false};
     bool do_benchmark = false;
     int thread_count_override = 0;
 
@@ -267,6 +267,8 @@ int main(int argc, char* argv[]) {
             bench_opts.scalar = true;
         } else if (strcmp(argv[i], "--sweep") == 0) {
             bench_opts.sweep = true;
+        } else if (strcmp(argv[i], "--nooptimisation") == 0) {
+            bench_opts.no_optimisations = true;
         } else if (strcmp(argv[i], "--threads") == 0 && i + 1 < argc) {
             bench_opts.threads = atoi(argv[++i]);
             thread_count_override = bench_opts.threads;

@@ -55,6 +55,7 @@ static double bench_scene(const struct BenchScene* scene, struct BenchmarkOpts o
         tp->jobs[i].kill_signal = &kill;
         tp->jobs[i].start_render_frac = 1;
         tp->jobs[i].use_simd = !opts.scalar;
+        tp->jobs[i].no_optimisations = opts.no_optimisations;
     }
 
     struct timespec t0, t1;
