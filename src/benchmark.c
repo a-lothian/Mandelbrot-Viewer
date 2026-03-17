@@ -7,6 +7,7 @@
 #include "core_count.h"
 #include "inputHandler.h"
 #include "mandelbrot.h"
+#include "simd_handler.h"
 
 #include <pthread.h>
 #include <stdio.h>
@@ -54,6 +55,7 @@ static double bench_scene(const struct BenchScene* scene, struct BenchmarkOpts o
         tp->jobs[i].buffer = buffer;
         tp->jobs[i].kill_signal = &kill;
         tp->jobs[i].start_render_frac = 1;  // single pass render
+        tp->jobs[i].use_simd = !opts.scalar;
     }
 
     struct timespec t0, t1;
@@ -86,6 +88,23 @@ void run_benchmark(struct BenchmarkOpts opts) {
         free(threads);
         free(jobs);
         return;
+    }
+
+    for (int i = 0; i < thread_count; i++) {
+        jobs[i].iteration_out = malloc(SCRN_WIDTH * sizeof(int));
+        if (!jobs[i].iteration_out) {
+            fprintf(stderr, "benchmark: iteration_out allocation failed\n");
+
+            for (int j = 0; j < i; j++) {
+                free(jobs[j].iteration_out);
+            }
+
+            free(buffer);
+            free(vp);
+            free(threads);
+            free(jobs);
+            return;
+        }
     }
 
     Uint32 palette[PALETTE_SIZE];
@@ -123,6 +142,8 @@ void run_benchmark(struct BenchmarkOpts opts) {
     printf("----------------------------------------------------\n");
     printf("\nNote: Avg. million iterations/second assumes no bailout, and therefore is an optimistic measurement\n\n");
 
+    for (int i = 0; i < thread_count; i++)
+        free(jobs[i].iteration_out);
     free(buffer);
     free(vp);
     free(threads);

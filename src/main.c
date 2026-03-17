@@ -28,10 +28,17 @@
 #define MAX_ITERATIONS 100000
 
 void cleanup(struct RenderContext* rc, struct ThreadPool* tp, struct viewport* vp) {
+    if (tp != NULL) {
+        for (int i = 0; i < tp->count; i++) {
+            free(tp->jobs[i].iteration_out);
+        }
+    }
+
     free(tp->jobs);
     free(tp->threads);
     free(rc->buffer);
     free(vp);
+
     SDL_DestroyTexture(rc->texture);
     SDL_DestroyRenderer(rc->renderer);
     SDL_DestroyWindow(rc->window);
@@ -73,6 +80,7 @@ void drawBuffer(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteS
         tp->jobs[i].start_render_frac = 8;
         tp->jobs[i].render_smooth = ps->smooth;
         tp->jobs[i].palette = ps->generated;
+        tp->jobs[i].use_simd = true;
         pthread_create(&tp->threads[i], NULL, calculateMandelbrotRoutine, &tp->jobs[i]);
     }
 }
@@ -124,11 +132,20 @@ int init_app(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteStat
         return 1;
     }
 
-    tp->jobs = malloc(tp->count * sizeof(struct RenderJob));
+    tp->jobs = calloc(tp->count, sizeof(struct RenderJob));
     if (!tp->jobs) {
         fprintf(stderr, "Failed to allocate render data\n");
         cleanup(rc, tp, vp);
         return 1;
+    }
+
+    for (int i = 0; i < tp->count; i++) {
+        tp->jobs[i].iteration_out = malloc(SCRN_WIDTH * sizeof(int));
+        if (!tp->jobs[i].iteration_out) {
+            fprintf(stderr, "Failed to allocate iter_scratch\n");
+            cleanup(rc, tp, vp);
+            return 1;
+        }
     }
 
     // palette
@@ -235,7 +252,7 @@ void shutdown_app(struct RenderContext* rc, struct ThreadPool* tp, struct viewpo
 
 int main(int argc, char* argv[]) {
     // check for benchmark call
-    struct BenchmarkOpts bench_opts = {.threads = 0, .smooth = false};
+    struct BenchmarkOpts bench_opts = {.threads = 0, .smooth = false, .scalar = false};
     bool do_benchmark = false;
     int thread_count_override = 0;
 
@@ -246,6 +263,8 @@ int main(int argc, char* argv[]) {
             bench_opts.smooth = true;
         } else if (strcmp(argv[i], "--fast") == 0) {
             bench_opts.smooth = false;
+        } else if (strcmp(argv[i], "--scalar") == 0) {
+            bench_opts.scalar = true;
         } else if (strcmp(argv[i], "--threads") == 0 && i + 1 < argc) {
             bench_opts.threads = atoi(argv[++i]);
             thread_count_override = bench_opts.threads;

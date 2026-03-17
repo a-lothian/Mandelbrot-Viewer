@@ -1,10 +1,11 @@
 #include "mandelbrot.h"
-
 #include "inputHandler.h"
+#include "simd_handler.h"
 
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static inline int isKnownInside(double x0, double y0) {
     // test 1. If x0, y0 is within distance of 1/4 from point (-1,0)
@@ -138,24 +139,47 @@ void* calculateMandelbrotRoutine(void* arg) {
             double x0 = world_left;
             double y0 = world_top + (double)y * zoom;
 
-            for (int x = 0; x < data->scrn_width; x += data->start_render_frac) {
-                int iterations = calculateMandelbrot(x0, y0, data->vp->iterations);
+            if (data->use_simd) {
+                int frac = data->start_render_frac;
+                double zoom_step = zoom * frac;
+                int pixel_count = (data->scrn_width + frac - 1) / frac;
 
-                // map iterations to colour data
-                Uint32 colour = data->render_smooth
-                                    ? cyclicPalette(data, iterations, palette_scale)
-                                    : data->palette[fast_map_range(iterations, data->vp->iterations, data->palette_size - 1)];
+                mandelbrot_simd_row(x0, y0, zoom_step, data->vp->iterations, data->iteration_out, pixel_count);
+                int px = 0;
+                for (int x = 0; x < data->scrn_width; x += frac, px++) {
+                    int iterations = data->iteration_out[px];
+                    Uint32 colour = data->render_smooth
+                                        ? cyclicPalette(data, iterations, palette_scale)
+                                        : data->palette[fast_map_range(iterations, data->vp->iterations, data->palette_size - 1)];
 
-                // copy to neighbours based on current render_frac
-                for (int k = 0; k < data->start_render_frac; k++) {
-                    if ((x + k) < data->scrn_width) {
-                        out[x + k] = colour;
+                    // copy to neighbours based on current render_frac
+                    for (int k = 0; k < data->start_render_frac; k++) {
+                        if ((x + k) < data->scrn_width) {
+                            out[x + k] = colour;
+                        }
                     }
                 }
+            } else {
+                for (int x = 0; x < data->scrn_width; x += data->start_render_frac) {
+                    int iterations = calculateMandelbrot(x0, y0, data->vp->iterations);
 
-                x0 += zoom * data->start_render_frac;  // update worldspace x for next loop, with respect to render_frac
+                    // map iterations to colour data
+                    Uint32 colour = data->render_smooth
+                                        ? cyclicPalette(data, iterations, palette_scale)
+                                        : data->palette[fast_map_range(iterations, data->vp->iterations, data->palette_size - 1)];
+
+                    // copy to neighbours based on current render_frac
+                    for (int k = 0; k < data->start_render_frac; k++) {
+                        if ((x + k) < data->scrn_width) {
+                            out[x + k] = colour;
+                        }
+                    }
+
+                    x0 += zoom * data->start_render_frac;  // update worldspace x for next loop, with respect to render_frac
+                }
             }
 
+            // scale to fullres despite lowres renderfrac
             for (int p = 1; p < data->start_render_frac; p++) {
                 int target_y = y + p;
                 if (target_y < data->end_y) {

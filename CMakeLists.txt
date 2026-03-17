@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
-project(MandelbrotViewer)
+project(MandelbrotViewer LANGUAGES C CXX)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED True)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # SDL3 package required for static linking
 find_package(SDL3 REQUIRED CONFIG)
@@ -11,15 +14,18 @@ add_executable(Mandelbrot
     src/main.c
     src/benchmark.c
     src/mandelbrot.c
+    src/simd_handler.cpp
     src/inputHandler.c
     src/core_count.c
     src/colour_palette.c
 )
 
+find_package(hwy CONFIG REQUIRED)
+
 if (WIN32)
-    target_link_libraries(Mandelbrot PRIVATE SDL3::SDL3-static)
+    target_link_libraries(Mandelbrot PRIVATE SDL3::SDL3-static hwy::hwy)
 else()
-    target_link_libraries(Mandelbrot PRIVATE SDL3::SDL3)
+    target_link_libraries(Mandelbrot PRIVATE SDL3::SDL3 hwy::hwy)
 endif()
 
 if(WIN32)
@@ -43,6 +49,7 @@ endif()
 # add include directory explicitly so <SDL3/SDL.h> works everywhere
 target_include_directories(Mandelbrot PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 if(WIN32)

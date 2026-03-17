@@ -5,6 +5,10 @@
 #include <pthread.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct viewport;
 
 struct RenderJob {
@@ -16,6 +20,8 @@ struct RenderJob {
     _Atomic bool* kill_signal;
     int start_render_frac;
     bool render_smooth;
+    bool use_simd;
+    int* iteration_out;
 };
 
 struct ThreadPool {
@@ -27,5 +33,9 @@ struct ThreadPool {
 
 int calculateMandelbrot(double x0, double y0, int iterations);
 void* calculateMandelbrotRoutine(void* arg);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
