@@ -40,7 +40,7 @@ static double bench_scene(const struct BenchScene* scene, struct BenchmarkOpts o
     vp->zoom = scene->zoom;
     vp->iterations = scene->iterations;
 
-    _Atomic bool kill = false;
+    ATOMIC_BOOL kill = false;
     int rows_per_thread = SCRN_HEIGHT / tp->count;
 
     for (int i = 0; i < tp->count; i++) {

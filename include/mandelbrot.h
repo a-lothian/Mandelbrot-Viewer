@@ -5,6 +5,12 @@
 #include <pthread.h>
 #include <stdbool.h>
 
+#ifdef _MSC_VER
+#define ATOMIC_BOOL volatile bool
+#else
+#define ATOMIC_BOOL _Atomic bool
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -17,7 +23,7 @@ struct RenderJob {
     Uint32* palette;
     int palette_size;
     Uint32* buffer;
-    _Atomic bool* kill_signal;
+    ATOMIC_BOOL* kill_signal;
     int start_render_frac;
     bool render_smooth;
     bool use_simd;
@@ -29,7 +35,7 @@ struct ThreadPool {
     pthread_t* threads;
     struct RenderJob* jobs;
     long count;
-    _Atomic bool kill;
+    ATOMIC_BOOL kill;
 };
 
 int calculateMandelbrot(double x0, double y0, int iterations);
