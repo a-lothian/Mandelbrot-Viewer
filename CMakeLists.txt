@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 project(MandelbrotViewer LANGUAGES C CXX)
 
+# use static multitheading library on windows
+if (MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+endif()
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED True)
 
