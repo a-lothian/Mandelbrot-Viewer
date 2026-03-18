@@ -53,6 +53,13 @@ else()
     target_compile_options(Mandelbrot PRIVATE $<$<CONFIG:Release>:-O3 -ffast-math>)
 endif()
 
+# enable AVX2 for the SIMD translation unit so Highway can emit wider vectors
+if(MSVC)
+    set_source_files_properties(src/simd_handler.cpp PROPERTIES COMPILE_FLAGS "/arch:AVX2")
+else()
+    set_source_files_properties(src/simd_handler.cpp PROPERTIES COMPILE_FLAGS "-mavx2 -mfma")
+endif()
+
 # add include directory explicitly so <SDL3/SDL.h> works everywhere
 target_include_directories(Mandelbrot PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
