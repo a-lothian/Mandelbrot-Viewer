@@ -56,8 +56,6 @@ endif()
 # enable AVX2 for the SIMD translation unit so Highway can emit wider vectors
 if(MSVC)
     set_source_files_properties(src/simd_handler.cpp PROPERTIES COMPILE_FLAGS "/arch:AVX2")
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|i[3-6]86")
-    set_source_files_properties(src/simd_handler.cpp PROPERTIES COMPILE_FLAGS "-mavx2 -mfma")
 endif()
 
 # add include directory explicitly so <SDL3/SDL.h> works everywhere

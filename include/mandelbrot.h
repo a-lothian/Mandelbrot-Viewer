@@ -5,7 +5,7 @@
 #include <pthread.h>
 #include <stdbool.h>
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__cplusplus)
 #define ATOMIC_BOOL volatile bool
 #else
 #define ATOMIC_BOOL _Atomic bool
