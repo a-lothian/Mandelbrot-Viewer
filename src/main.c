@@ -63,7 +63,7 @@ int calculateIterations(double zoom) {
 
 void drawBuffer(struct RenderContext* rc, struct ThreadPool* tp, struct PaletteState* ps) {
     // rejoin existing threads
-    if (tp->threads[0] != NULL) {
+    if (tp->threads != NULL) {
         tp->kill = true;
 
         for (int i = 0; i < tp->count; i++) {
