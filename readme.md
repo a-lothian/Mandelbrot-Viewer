@@ -10,7 +10,7 @@ _A Multithreaded Mandelbrot set viewer written in C using SDL3._
         <img src="assets/render_demo.gif" width="100%" />
       </td>
       <td align="center">
-        <img src="assets/benchmark.png" width="75%" />
+        <img src="assets/benchmark.png" width="115%" />
       </td>
     </tr>
   </table>
