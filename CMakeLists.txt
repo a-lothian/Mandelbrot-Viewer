@@ -3,7 +3,7 @@ project(MandelbrotViewer LANGUAGES C CXX)
 
 # use static multitheading library on windows
 if (MSVC)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 endif()
 
 set(CMAKE_C_STANDARD 11)
