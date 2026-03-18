@@ -3,13 +3,23 @@
 _A Multithreaded Mandelbrot set viewer written in C using SDL3._
 
 <p align="center">
-  <img src="assets/zoom_demo.gif" width="35%" />
-  <img src="assets/render_demo.gif" width="35%">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="assets/zoom_demo.gif" width="100%" /><br/>
+        <img src="assets/render_demo.gif" width="100%" />
+      </td>
+      <td align="center">
+        <img src="assets/benchmark.png" width="75%" />
+      </td>
+    </tr>
+  </table>
 </p>
 
 ## Features
 
-- Mouse controls: Dragging, Zooming
+- Designed for **high performance** across a range of systems
+- SIMD integration via Google Highway, supporting a wide range of implementations
 - Multi-threaded progressive rendering
 - 12 Colour palettes
 - Cross-platform (macOS, Linux, Windows)
@@ -27,6 +37,9 @@ _A Multithreaded Mandelbrot set viewer written in C using SDL3._
 | **Toggle Shading Mode**     | `/` (Standard vs. Smooth) |
 | **Cycle Colour Palettes**   | `M`                       |
 
+
+**Prebuilt executables are available for download from the `Releases` panel.** 
+
 ## How to Build
 
 ### Prerequisites
@@ -34,7 +47,7 @@ _A Multithreaded Mandelbrot set viewer written in C using SDL3._
 - **CMake** (Version 3.16+)
 - **C Compiler** (GCC, Clang, or MSVC)
 - **vcpkg** (for managing dependencies)
-- **SDL3** and **pthreads** (installed via vcpkg)
+- **SDL3**, **Google Highway**, and **pthreads** (installed via vcpkg)
 
 ### Install Dependencies
 
@@ -59,25 +72,25 @@ Where `<triplet>` is:
 **Windows:**
 
 ```bash
-vcpkg install sdl3:x64-windows-static-md pthreads:x64-windows-static-md
+vcpkg install sdl3:x64-windows-static-md highway:x64-windows-static-md pthreads:x64-windows-static-md
 ```
 
 **macOS (Apple Silicon):**
 
 ```bash
-vcpkg install sdl3:arm64-osx-release
+vcpkg install sdl3:arm64-osx-release highway:arm64-osx-release
 ```
 
 **macOS (Intel):**
 
 ```bash
-vcpkg install sdl3:x64-osx-release
+vcpkg install sdl3:x64-osx-release highway:x64-osx-release
 ```
 
 **Linux:**
 
 ```bash
-vcpkg install sdl3:x64-linux-release
+vcpkg install sdl3:x64-linux-release highway:x64-linux-release
 ```
 
 ### Build Steps
@@ -89,7 +102,7 @@ vcpkg install sdl3:x64-linux-release
     cd Mandelbrot-Viewer
     ```
 
-2.  **Install dependencies:**
+2.  **Install dependencies** (see [Install Dependencies](#install-dependencies) above for details):
 
     ```bash
     vcpkg install --triplet <triplet>
@@ -97,11 +110,19 @@ vcpkg install sdl3:x64-linux-release
 
 3.  **Configure the project:**
 
-    ##### Windows:
+    ##### Windows (PowerShell):
+
+    ```powershell
+    cmake -B build -DCMAKE_BUILD_TYPE=Release `
+      -DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake `
+      -DVCPKG_TARGET_TRIPLET=x64-windows-static-md
+    ```
+
+    ##### Windows (bash):
 
     ```bash
     cmake -B build -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake \
+      -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake \
       -DVCPKG_TARGET_TRIPLET=x64-windows-static-md
     ```
 
@@ -164,6 +185,11 @@ vcpkg install sdl3:x64-linux-release
   - License: zlib License
   - Source: https://github.com/libsdl-org/SDL
   - Copyright (C) 1997-2025 Sam Lantinga
+
+- **Google Highway**: Used for portable SIMD acceleration of Mandelbrot iteration.
+  - License: Apache License 2.0
+  - Source: https://github.com/google/highway
+  - Copyright (C) 2019 Google LLC
 
 - **pthreads4w** _(Windows only)_: Used for multithreading support on Windows.
   - License: Apache License 2.0
